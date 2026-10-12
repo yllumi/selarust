@@ -1,0 +1,10 @@
+/target
+**/*.rs.bk
+*.db
+*.db-shm
+*.db-wal
+
+# Hasil generate Sayagi (aman dihapus, dibuat ulang saat build).
+/public/manifest.webmanifest
+/public/sw.js
+/public/icons/

@@ -1,0 +1,75 @@
+[package]
+name = "mobile-pwa"
+description = "Example mobile-first PWA generated with the Sayagi Rust metaframework."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+sayagi = { workspace = true }
+leptos = { workspace = true }
+leptos_router = { workspace = true }
+leptos_meta = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+
+axum = { workspace = true, optional = true, features = ["ws"] }
+leptos_axum = { workspace = true, optional = true }
+tokio = { workspace = true, optional = true, features = ["rt-multi-thread", "macros", "net"] }
+tower-http = { workspace = true, optional = true, features = ["compression-gzip", "set-header"] }
+sqlx = { version = "0.8", optional = true, default-features = false, features = [
+    "runtime-tokio",
+    "sqlite",
+    "macros",
+] }
+wasm-bindgen = { workspace = true, optional = true }
+console_error_panic_hook = { version = "0.1", optional = true }
+
+[build-dependencies]
+sayagi-build = { workspace = true }
+
+[features]
+# Kept empty: `cargo build` alone is only used for tooling/`cargo check`.
+default = []
+
+# Everything that only exists on the server.
+ssr = [
+    "dep:axum",
+    "dep:leptos_axum",
+    "dep:tokio",
+    "dep:tower-http",
+    "dep:sqlx",
+    "leptos/ssr",
+    "leptos_meta/ssr",
+    "leptos_router/ssr",
+    "sayagi/ssr",
+]
+
+# The Wasm client that hydrates the server-rendered HTML.
+hydrate = [
+    "dep:wasm-bindgen",
+    "dep:console_error_panic_hook",
+    "sayagi/hydrate",
+]
+
+[package.metadata.leptos]
+output-name = "mobile-pwa"
+site-root = "target/site"
+site-pkg-dir = "pkg"
+style-file = "style/main.css"
+assets-dir = "public"
+site-addr = "127.0.0.1:3000"
+reload-port = 3001
+browserquery = "defaults"
+# Beri hash konten pada berkas di /pkg/, sehingga aman di-cache selamanya
+# (lihat middleware `asset_cache_control` di src/main.rs).
+hash-files = true
+bin-features = ["ssr"]
+bin-default-features = false
+lib-features = ["hydrate"]
+lib-default-features = false
+lib-profile-release = "wasm-release"

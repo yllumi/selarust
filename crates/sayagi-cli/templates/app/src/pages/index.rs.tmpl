@@ -1,0 +1,33 @@
+//! `/` — halaman beranda.
+
+use leptos::prelude::*;
+use sayagi::{LinkButton, MobileLayout};
+
+/// Komponen halaman.
+#[component]
+pub fn Page() -> impl IntoView {
+    view! {
+        <MobileLayout title="{{project_title}}">
+            <section class="sy-hero">
+                <p class="sy-hero__eyebrow">"Sayagi Rust"</p>
+                <h2 class="sy-hero__title">"Proyek kamu siap jalan"</h2>
+                <p class="sy-hero__lead">
+                    "Tambahkan berkas baru di " <code class="sy-code">"src/pages/"</code>
+                    " dan rutenya langsung tersedia — tanpa daftar rute manual."
+                </p>
+                <LinkButton href="/hello">
+                    "Lihat halaman contoh"
+                </LinkButton>
+            </section>
+
+            <section class="sy-section">
+                <h3 class="sy-section__title">"Langkah berikutnya"</h3>
+                <ul class="sy-list">
+                    <li class="sy-list__item">"Tambah halaman baru di src/pages"</li>
+                    <li class="sy-list__item">"Ubah nama, warna, dan ikon di Sayagi.toml"</li>
+                    <li class="sy-list__item">"Buat server function dengan #[server]"</li>
+                </ul>
+            </section>
+        </MobileLayout>
+    }
+}

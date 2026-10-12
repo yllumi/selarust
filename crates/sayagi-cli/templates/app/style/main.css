@@ -1,0 +1,325 @@
+/* Gaya dasar Sayagi: mobile-first, tema gelap/terang otomatis. */
+
+:root {
+  --sy-bg: #0b1120;
+  --sy-surface: #121c31;
+  --sy-border: #22314f;
+  --sy-text: #e6ecf9;
+  --sy-muted: #94a4c2;
+  --sy-accent: #4f8cff;
+  --sy-safe-bottom: env(safe-area-inset-bottom, 0px);
+  --sy-safe-top: env(safe-area-inset-top, 0px);
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --sy-bg: #f4f6fb;
+    --sy-surface: #ffffff;
+    --sy-border: #dde4f0;
+    --sy-text: #101a2e;
+    --sy-muted: #5b6b88;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+  background: var(--sy-bg);
+  color: var(--sy-text);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.sy-app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+}
+
+.sy-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  height: calc(56px + var(--sy-safe-top));
+  padding: var(--sy-safe-top) 0.85rem 0;
+  background: var(--sy-surface);
+  border-bottom: 1px solid var(--sy-border);
+}
+
+.sy-header__title {
+  flex: 1;
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.sy-header__back {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  color: var(--sy-text);
+  background: transparent;
+  border: 1px solid var(--sy-border);
+  border-radius: 50%;
+}
+
+.sy-header__back svg,
+.sy-nav__icon svg {
+  width: 20px;
+  height: 20px;
+  fill: currentColor;
+}
+
+.sy-main {
+  flex: 1;
+  width: 100%;
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 1rem 0.85rem calc(64px + var(--sy-safe-bottom) + 1rem);
+}
+
+.sy-nav {
+  position: fixed;
+  inset: auto 0 0;
+  z-index: 30;
+  display: flex;
+  justify-content: space-around;
+  height: calc(62px + var(--sy-safe-bottom));
+  padding-bottom: var(--sy-safe-bottom);
+  background: var(--sy-surface);
+  border-top: 1px solid var(--sy-border);
+}
+
+/* Komponen <A> tidak menerima atribut tambahan, jadi gaya ditempel di pembungkus. */
+
+.sy-nav a {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.15rem;
+  font-size: 0.68rem;
+  color: var(--sy-muted);
+}
+
+.sy-nav a[aria-current="page"] {
+  color: var(--sy-accent);
+}
+
+.sy-offline-banner {
+  display: none;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.6rem 0.85rem 0;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.78rem;
+  color: #fbbf24;
+  border: 1px solid currentColor;
+  border-radius: 10px;
+}
+
+html[data-sayagi-online="false"] .sy-offline-banner {
+  display: flex;
+}
+
+.sy-offline-banner__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.sy-pull {
+  position: relative;
+  touch-action: pan-y;
+}
+
+.sy-pull__indicator {
+  position: absolute;
+  top: -2rem;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  font-size: 0.72rem;
+  color: var(--sy-muted);
+  opacity: 0;
+}
+
+.sy-pull.is-pulling .sy-pull__indicator {
+  opacity: 1;
+}
+
+.sy-pull__spinner {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid var(--sy-border);
+  border-top-color: var(--sy-accent);
+}
+
+.sy-pull.is-armed .sy-pull__spinner {
+  border-top-color: #34d399;
+  animation: sy-spin 0.7s linear infinite;
+}
+
+.sy-pull__content {
+  transition: transform 0.18s ease-out;
+}
+
+.sy-pull.is-pulling .sy-pull__content {
+  transition: none;
+}
+
+@keyframes sy-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.sy-hero,
+.sy-page,
+.sy-section {
+  margin: 0 0 1.5rem;
+}
+
+.sy-hero {
+  padding: 1.1rem;
+  background: var(--sy-surface);
+  border: 1px solid var(--sy-border);
+  border-radius: 16px;
+}
+
+.sy-hero__eyebrow,
+.sy-overline {
+  margin: 0 0 0.4rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--sy-accent);
+}
+
+.sy-hero__title,
+.sy-title {
+  margin: 0 0 0.5rem;
+  font-size: 1.35rem;
+  line-height: 1.2;
+}
+
+.sy-hero__lead {
+  margin: 0 0 1rem;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--sy-muted);
+}
+
+.sy-section__title {
+  margin: 0 0 0.6rem;
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--sy-muted);
+}
+
+.sy-btn {
+  display: inline-flex;
+  margin-top: 0.5rem;
+}
+
+.sy-btn > a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.7rem 1.1rem;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #04122b;
+  background: var(--sy-accent);
+  border-radius: 999px;
+}
+
+.sy-btn--ghost > a {
+  color: var(--sy-text);
+  background: transparent;
+  border: 1px solid var(--sy-border);
+}
+
+.sy-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.55rem;
+}
+
+.sy-list__item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.7rem 0.85rem;
+  font-size: 0.86rem;
+  background: var(--sy-surface);
+  border: 1px solid var(--sy-border);
+  border-radius: 10px;
+}
+
+.sy-code {
+  font-family: ui-monospace, Menlo, monospace;
+  font-size: 0.82rem;
+  background: var(--sy-surface);
+  border: 1px solid var(--sy-border);
+  border-radius: 6px;
+  padding: 0.1rem 0.35rem;
+}
+
+.sy-muted {
+  color: var(--sy-muted);
+}
+
+.sy-small {
+  font-size: 0.78rem;
+}
+
+.sy-empty {
+  padding: 2rem 1rem;
+  text-align: center;
+}
+
+.sy-empty__code {
+  margin: 0 0 0.35rem;
+  font-size: 0.75rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--sy-accent);
+}
+
+.sy-empty__title {
+  margin: 0 0 0.5rem;
+  font-size: 1.15rem;
+}
+
+.sy-error {
+  padding: 0.7rem 0.85rem;
+  font-size: 0.84rem;
+  color: #f87171;
+  border: 1px solid currentColor;
+  border-radius: 10px;
+}

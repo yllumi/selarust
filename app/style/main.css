@@ -1,0 +1,528 @@
+/* Sayagi mobile-first base stylesheet.
+   Komponennya hanya mengeluarkan class `sy-*`, jadi tema cukup diatur di sini. */
+
+:root {
+  --sy-bg: #0b1120;
+  --sy-surface: #121c31;
+  --sy-surface-soft: #182541;
+  --sy-border: #22314f;
+  --sy-text: #e6ecf9;
+  --sy-muted: #94a4c2;
+  --sy-accent: #4f8cff;
+  --sy-ok: #34d399;
+  --sy-idle: #fbbf24;
+  --sy-off: #f87171;
+  --sy-radius: 16px;
+  --sy-radius-sm: 10px;
+  --sy-header-height: 56px;
+  --sy-nav-height: 62px;
+  --sy-safe-top: env(safe-area-inset-top, 0px);
+  --sy-safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --sy-bg: #f4f6fb;
+    --sy-surface: #ffffff;
+    --sy-surface-soft: #eef2fa;
+    --sy-border: #dde4f0;
+    --sy-text: #101a2e;
+    --sy-muted: #5b6b88;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+  background: var(--sy-bg);
+  color: var(--sy-text);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: contain;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+code,
+.sy-code {
+  font-family: ui-monospace, "SFMono-Regular", Menlo, monospace;
+  font-size: 0.82rem;
+  background: var(--sy-surface-soft);
+  border: 1px solid var(--sy-border);
+  border-radius: 6px;
+  padding: 0.1rem 0.35rem;
+}
+
+/* ---------- shell ---------- */
+
+.sy-app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+.sy-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  height: calc(var(--sy-header-height) + var(--sy-safe-top));
+  padding: var(--sy-safe-top) 0.85rem 0;
+  background: color-mix(in srgb, var(--sy-bg) 88%, transparent);
+  border-bottom: 1px solid var(--sy-border);
+  backdrop-filter: blur(12px);
+}
+
+.sy-header__title {
+  flex: 1;
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.sy-header__actions {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.sy-header__back {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  color: var(--sy-text);
+  background: var(--sy-surface-soft);
+  border: 1px solid var(--sy-border);
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.sy-header__back svg,
+.sy-nav__icon svg {
+  width: 20px;
+  height: 20px;
+  fill: currentColor;
+}
+
+.sy-main {
+  flex: 1;
+  padding: 1rem 0.85rem calc(var(--sy-nav-height) + var(--sy-safe-bottom) + 1.25rem);
+  width: 100%;
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+.sy-nav {
+  position: fixed;
+  inset: auto 0 0;
+  z-index: 30;
+  display: flex;
+  justify-content: space-around;
+  gap: 0.25rem;
+  height: calc(var(--sy-nav-height) + var(--sy-safe-bottom));
+  padding: 0.35rem 0.5rem calc(var(--sy-safe-bottom) + 0.35rem);
+  background: color-mix(in srgb, var(--sy-surface) 94%, transparent);
+  border-top: 1px solid var(--sy-border);
+  backdrop-filter: blur(14px);
+}
+
+/* Komponen <A> leptos_router tidak menerima atribut tambahan, jadi gaya tombol
+   dan kartu ditempel pada elemen pembungkus dan diteruskan lewat selektor turunan. */
+
+.sy-nav a {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.15rem;
+  border-radius: var(--sy-radius-sm);
+  color: var(--sy-muted);
+  font-size: 0.68rem;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.sy-nav a[aria-current="page"] {
+  color: var(--sy-accent);
+  background: color-mix(in srgb, var(--sy-accent) 12%, transparent);
+}
+
+.sy-nav__icon {
+  display: inline-flex;
+}
+
+/* ---------- offline banner ---------- */
+
+.sy-offline-banner {
+  display: none;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.6rem 0.85rem 0;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.78rem;
+  color: var(--sy-idle);
+  background: color-mix(in srgb, var(--sy-idle) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--sy-idle) 35%, transparent);
+  border-radius: var(--sy-radius-sm);
+}
+
+html[data-sayagi-online="false"] .sy-offline-banner {
+  display: flex;
+}
+
+.sy-offline-banner__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+/* ---------- pull to refresh ---------- */
+
+.sy-pull {
+  position: relative;
+  touch-action: pan-y;
+}
+
+.sy-pull__indicator {
+  position: absolute;
+  top: -2rem;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  font-size: 0.72rem;
+  color: var(--sy-muted);
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.sy-pull.is-pulling .sy-pull__indicator {
+  opacity: 1;
+}
+
+.sy-pull__spinner {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid var(--sy-border);
+  border-top-color: var(--sy-accent);
+}
+
+.sy-pull.is-armed .sy-pull__spinner {
+  border-top-color: var(--sy-ok);
+  animation: sy-spin 0.7s linear infinite;
+}
+
+.sy-pull__content {
+  transition: transform 0.18s ease-out;
+}
+
+.sy-pull.is-pulling .sy-pull__content {
+  transition: none;
+}
+
+@keyframes sy-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ---------- content blocks ---------- */
+
+.sy-page,
+.sy-section {
+  display: block;
+  margin: 0 0 1.5rem;
+}
+
+.sy-section__title {
+  margin: 0 0 0.6rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--sy-muted);
+}
+
+.sy-hero {
+  padding: 1.1rem;
+  margin-bottom: 1.5rem;
+  background: linear-gradient(160deg, var(--sy-surface), var(--sy-bg));
+  border: 1px solid var(--sy-border);
+  border-radius: var(--sy-radius);
+}
+
+.sy-hero__eyebrow,
+.sy-overline {
+  margin: 0 0 0.4rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--sy-accent);
+}
+
+.sy-hero__title,
+.sy-title {
+  margin: 0 0 0.5rem;
+  font-size: 1.35rem;
+  line-height: 1.2;
+}
+
+.sy-hero__lead {
+  margin: 0 0 1rem;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--sy-muted);
+}
+
+.sy-btn {
+  display: inline-flex;
+  margin-top: 0.5rem;
+}
+
+.sy-btn > a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.7rem 1.1rem;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #04122b;
+  background: var(--sy-accent);
+  border: 1px solid transparent;
+  border-radius: 999px;
+}
+
+.sy-btn--ghost > a {
+  color: var(--sy-text);
+  background: transparent;
+  border-color: var(--sy-border);
+}
+
+.sy-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.55rem;
+}
+
+.sy-list__item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.7rem 0.85rem;
+  font-size: 0.86rem;
+  background: var(--sy-surface);
+  border: 1px solid var(--sy-border);
+  border-radius: var(--sy-radius-sm);
+}
+
+.sy-list__item--column {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.3rem;
+}
+
+.sy-list__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.sy-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--sy-ok);
+  flex: none;
+}
+
+.sy-chip {
+  padding: 0.15rem 0.5rem;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--sy-muted);
+  background: var(--sy-surface-soft);
+  border: 1px solid var(--sy-border);
+  border-radius: 999px;
+}
+
+.sy-cards {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.sy-card {
+  background: var(--sy-surface);
+  border: 1px solid var(--sy-border);
+  border-radius: var(--sy-radius-sm);
+  overflow: hidden;
+}
+
+.sy-card > a {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.85rem 0.95rem;
+}
+
+.sy-card > a:active {
+  background: var(--sy-surface-soft);
+}
+
+.sy-card__title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.sy-card__meta {
+  margin: 0.15rem 0 0;
+  font-size: 0.74rem;
+  color: var(--sy-muted);
+}
+
+.sy-badge {
+  flex: none;
+  padding: 0.25rem 0.6rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  border-radius: 999px;
+  background: var(--sy-surface-soft);
+  border: 1px solid var(--sy-border);
+}
+
+.sy-badge--ok {
+  color: var(--sy-ok);
+  border-color: color-mix(in srgb, var(--sy-ok) 40%, transparent);
+}
+
+.sy-badge--idle {
+  color: var(--sy-idle);
+  border-color: color-mix(in srgb, var(--sy-idle) 40%, transparent);
+}
+
+.sy-badge--off {
+  color: var(--sy-off);
+  border-color: color-mix(in srgb, var(--sy-off) 40%, transparent);
+}
+
+.sy-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.55rem;
+}
+
+.sy-stat {
+  padding: 0.75rem;
+  text-align: center;
+  background: var(--sy-surface);
+  border: 1px solid var(--sy-border);
+  border-radius: var(--sy-radius-sm);
+}
+
+.sy-stat--ok {
+  border-color: color-mix(in srgb, var(--sy-ok) 40%, transparent);
+}
+
+.sy-stat--off {
+  border-color: color-mix(in srgb, var(--sy-off) 40%, transparent);
+}
+
+.sy-stat__value {
+  margin: 0;
+  font-size: 1.4rem;
+  font-weight: 700;
+}
+
+.sy-stat__label {
+  margin: 0.2rem 0 0;
+  font-size: 0.72rem;
+  color: var(--sy-muted);
+}
+
+.sy-detail {
+  margin: 1rem 0;
+  background: var(--sy-surface);
+  border: 1px solid var(--sy-border);
+  border-radius: var(--sy-radius-sm);
+}
+
+.sy-detail__row {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.7rem 0.9rem;
+  font-size: 0.86rem;
+  border-bottom: 1px solid var(--sy-border);
+}
+
+.sy-detail__row:last-child {
+  border-bottom: none;
+}
+
+.sy-detail__row dt {
+  color: var(--sy-muted);
+}
+
+.sy-detail__row dd {
+  margin: 0;
+  font-weight: 600;
+}
+
+.sy-empty {
+  padding: 2rem 1rem;
+  text-align: center;
+}
+
+.sy-empty__code {
+  margin: 0 0 0.35rem;
+  font-size: 0.75rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--sy-accent);
+}
+
+.sy-empty__title {
+  margin: 0 0 0.5rem;
+  font-size: 1.15rem;
+}
+
+.sy-muted {
+  color: var(--sy-muted);
+}
+
+.sy-small {
+  font-size: 0.78rem;
+}
+
+.sy-error {
+  padding: 0.7rem 0.85rem;
+  font-size: 0.84rem;
+  color: var(--sy-off);
+  background: color-mix(in srgb, var(--sy-off) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--sy-off) 35%, transparent);
+  border-radius: var(--sy-radius-sm);
+}
