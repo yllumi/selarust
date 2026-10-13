@@ -92,7 +92,9 @@ docker build -t selarust-todo .   # image saja, tanpa compose
     [`docker-compose.yml`](../docker-compose.yml),
     [`.env.example`](../.env.example), dan bagian Docker di README sekaligus.
     Semua knob compose memakai pola `${NAMA:-bawaan}` supaya bisa ditimpa dari
-    shell/`.env`; jangan menulis nilai mati di sana. Container berjalan tanpa root
+    shell/`.env`; jangan menulis nilai mati di sana — kecuali **port container
+    (`3000`)**, yang memang statis karena terikat `EXPOSE` di Dockerfile dan
+    `LEPTOS_SITE_ADDR`; hanya port host yang boleh diatur lewat variable. Container berjalan tanpa root
     dengan filesystem read-only: hanya `/data` (SQLite, volume) dan `/tmp` yang
     boleh ditulis. Jangan commit `.env` (sudah di `.gitignore`); contoh yang boleh
     dibagikan ada di `.env.example`.

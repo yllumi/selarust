@@ -102,7 +102,6 @@ docker compose --env-file .env.prod up  # berkas env lain
 | Variable | Bawaan | Guna |
 | --- | --- | --- |
 | `SELARUST_PORT` | `8080` | Port di host |
-| `SELARUST_APP_PORT` | `3000` | Port di container **dan** alamat listen Leptos — satu nilai untuk keduanya supaya tidak bisa berbeda |
 | `SELARUST_BIND` | `0.0.0.0` | Antarmuka host; `127.0.0.1` untuk lokal saja |
 | `SELARUST_IMAGE` | `selarust-todo:latest` | Tag image, mis. diarahkan ke registry |
 | `SELARUST_DATABASE_URL` | `sqlite:///data/selarust.db` | URL SQLite di dalam container |
@@ -113,6 +112,11 @@ docker compose --env-file .env.prod up  # berkas env lain
 | `SELARUST_ENV_FILE` | `.env` | Berkas env tambahan yang diteruskan ke container |
 | `LEPTOS_ENV` | `PROD` | Mode Leptos (`DEV` menyalakan auto-reload) |
 | `LEPTOS_SITE_ROOT`, `LEPTOS_OUTPUT_NAME` | `/app/site`, `mobile-pwa` | Kontrak runtime Leptos |
+
+Port di dalam container **statis 3000** — nilai itu terikat pada `EXPOSE` di
+[Dockerfile](./Dockerfile) dan `LEPTOS_SITE_ADDR` di compose, jadi sengaja tidak
+dijadikan environment variable; yang bisa diatur hanyalah port host
+(`SELARUST_PORT`) dan antarmuka host (`SELARUST_BIND`).
 
 Selain variabel di atas, isi berkas `.env` juga **diteruskan ke dalam container**
 (`env_file`), sehingga variabel aplikasi tambahan bisa diberikan tanpa mengubah

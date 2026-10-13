@@ -295,7 +295,7 @@ tahap builder (rust:1.99-slim-bookworm)          tahap runtime (debian:bookworm-
 | Aspek | Nilai di image | Alasan |
 | --- | --- | --- |
 | Base runtime | `debian:bookworm-slim` | Binary hanya butuh libc/libm/libgcc karena SQLite di-*bundle* (§2), jadi image tetap kecil |
-| Alamat | `LEPTOS_SITE_ADDR=0.0.0.0:3000` | Metadata `Cargo.toml` menunjuk `127.0.0.1` yang tidak bisa diakses dari luar container |
+| Alamat | `LEPTOS_SITE_ADDR=0.0.0.0:3000` | Metadata `Cargo.toml` menunjuk `127.0.0.1` yang tidak bisa diakses dari luar container; port container statis 3000 (hanya port host yang bisa diatur) |
 | Akar situs | `LEPTOS_SITE_ROOT=/app/site` | `cargo leptos build` menulis `target/site`; isinya disalin ke image |
 | Database | `SELARUST_DATABASE_URL=sqlite:///data/selarust.db` | Path absolut dipakai apa adanya oleh `db::resolve_url`; `/data` adalah volume |
 | Pengguna | `selarust` (uid 10001) | Server tidak perlu root |
