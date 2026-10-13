@@ -1,0 +1,59 @@
+# Menjalankan Selarust sebagai container.
+#
+#   docker compose up --build        # build + jalankan di http://127.0.0.1:8080
+#   docker compose logs -f app
+#   docker compose down              # data tetap tersimpan di volume `selarust-data`
+#
+# Semua nilai di bawah menerima environment variable, baik dari shell maupun
+# dari berkas `.env` di direktori ini (compose membacanya otomatis). Daftar
+# lengkap beserta bawaannya ada di `.env.example`.
+#
+#   SELARUST_PORT=3000 docker compose up --build
+#   echo 'LEPTOS_ENV=DEV' >> .env && docker compose up
+
+name: ${SELARUST_PROJECT:-selarust}
+
+services:
+  app:
+    build:
+      context: .
+      target: runtime
+    image: ${SELARUST_IMAGE:-selarust-todo:latest}
+    ports:
+      # SELARUST_APP_PORT dipakai untuk kedua sisi sekaligus (port container dan
+      # alamat listen Leptos), jadi keduanya tidak bisa berbeda. SELARUST_BIND
+      # menentukan antarmuka host: 127.0.0.1 untuk lokal saja, 0.0.0.0 (bawaan)
+      # kalau perangkat lain di jaringan perlu membuka PWA-nya.
+      - "${SELARUST_BIND:-0.0.0.0}:${SELARUST_PORT:-8080}:${SELARUST_APP_PORT:-3000}"
+    # Variabel tambahan (di luar yang dipetakan di `environment`) diteruskan ke
+    # container. Berkas `.env` boleh tidak ada; nilai di `environment` selalu
+    # menang atas isi berkas ini.
+    env_file:
+      - path: ${SELARUST_ENV_FILE:-.env}
+        required: false
+    environment:
+      # Absolut, jadi dipakai apa adanya oleh `db::resolve_url` dan menunjuk
+      # volume di bawah ini.
+      SELARUST_DATABASE_URL: ${SELARUST_DATABASE_URL:-sqlite:///data/selarust.db}
+      LEPTOS_SITE_ROOT: ${LEPTOS_SITE_ROOT:-/app/site}
+      # Alamat listen mengikuti port container di atas.
+      LEPTOS_SITE_ADDR: "0.0.0.0:${SELARUST_APP_PORT:-3000}"
+      LEPTOS_OUTPUT_NAME: ${LEPTOS_OUTPUT_NAME:-mobile-pwa}
+      LEPTOS_ENV: ${LEPTOS_ENV:-PROD}
+    volumes:
+      # Nama volume (mis. `selarust-data`) atau path host (mis. `./data`).
+      - "${SELARUST_DATA_DIR:-selarust-data}:/data"
+    # Server tidak menulis selain ke /data (SQLite) dan /tmp.
+    read_only: true
+    tmpfs:
+      - /tmp
+    restart: ${SELARUST_RESTART:-unless-stopped}
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:${SELARUST_APP_PORT:-3000}/"]
+      interval: ${SELARUST_HEALTHCHECK_INTERVAL:-30s}
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+
+volumes:
+  selarust-data:

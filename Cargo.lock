@@ -1427,8 +1427,8 @@ dependencies = [
  "leptos_axum",
  "leptos_meta",
  "leptos_router",
- "sayagi",
- "sayagi-build",
+ "selarust",
+ "selarust-build",
  "serde",
  "serde_json",
  "sqlx",
@@ -1850,7 +1850,13 @@ dependencies = [
 ]
 
 [[package]]
-name = "sayagi"
+name = "scopeguard"
+version = "1.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "94143f37725109f92c262ed2cf5e59bce7498c01bcc1502d7b9afe439a4e9f49"
+
+[[package]]
+name = "selarust"
 version = "0.1.0"
 dependencies = [
  "js-sys",
@@ -1864,7 +1870,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "sayagi-build"
+name = "selarust-build"
 version = "0.1.0"
 dependencies = [
  "flate2",
@@ -1874,17 +1880,11 @@ dependencies = [
 ]
 
 [[package]]
-name = "sayagi-cli"
+name = "selarust-cli"
 version = "0.1.0"
 dependencies = [
- "sayagi-build",
+ "selarust-build",
 ]
-
-[[package]]
-name = "scopeguard"
-version = "1.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "94143f37725109f92c262ed2cf5e59bce7498c01bcc1502d7b9afe439a4e9f49"
 
 [[package]]
 name = "semver"

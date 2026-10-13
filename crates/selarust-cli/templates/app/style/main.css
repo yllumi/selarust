@@ -1,0 +1,745 @@
+/* Gaya dasar Selarust: mobile-first, tema gelap/terang otomatis. */
+
+:root {
+  --sr-bg: #0b1120;
+  --sr-surface: #121c31;
+  --sr-border: #22314f;
+  --sr-text: #e6ecf9;
+  --sr-muted: #94a4c2;
+  --sr-accent: #4f8cff;
+  --sr-safe-bottom: env(safe-area-inset-bottom, 0px);
+  --sr-safe-top: env(safe-area-inset-top, 0px);
+
+  /* Token gerak Material 3 untuk perpindahan halaman.
+     Angka geometrinya mengikuti implementasi referensi "fade forwards"
+     (default Android 14+, Flutter `FadeForwardsPageTransitionsBuilder`):
+     durasi 450 ms, geser 25% lebar halaman, halaman masuk selesai fade pada 75%
+     durasi dan halaman keluar pada 25%. Easing memakai token M3 untuk elemen
+     masuk/keluar: emphasized decelerate / emphasized accelerate. Perpindahan
+     selevel memakai pola "fade through" (300 ms, fade keluar 30% pertama). */
+  --sr-motion-duration: 450ms;
+  --sr-motion-duration-fade: 300ms;
+  --sr-motion-travel: 25%;
+  --sr-motion-ease-enter: cubic-bezier(0.05, 0.7, 0.1, 1);
+  --sr-motion-ease-exit: cubic-bezier(0.3, 0, 0.8, 0.15);
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --sr-bg: #f4f6fb;
+    --sr-surface: #ffffff;
+    --sr-border: #dde4f0;
+    --sr-text: #101a2e;
+    --sr-muted: #5b6b88;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+  background: var(--sr-bg);
+  color: var(--sr-text);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+  /* Chrome Android memakai swipe dari tepi kiri untuk navigasi mundur bawaan;
+     itu bertabrakan dengan gestur swipe-back milik shell (satu swipe memicu dua
+     kali back). `none` mematikan gestur bawaan pada sumbu horizontal saja. */
+  overscroll-behavior-x: none;
+  /* Scrollbar klasik (desktop) mengubah lebar viewport saat muncul/hilang, dan
+     Chromium membatalkan view transition di tengah jalan bila itu terjadi.
+     Ruang untuk scrollbar karena itu selalu disediakan, dan geseran horizontal
+     (swipe-back) dipotong dengan `clip` supaya tidak memunculkan scrollbar —
+     `clip` tidak menjadikan body scroll container, jadi header sticky tetap
+     berfungsi. */
+  scrollbar-gutter: stable;
+  overflow-x: clip;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.sr-app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+}
+
+.sr-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  height: calc(56px + var(--sr-safe-top));
+  padding: var(--sr-safe-top) 0.85rem 0;
+  background: var(--sr-surface);
+  border-bottom: 1px solid var(--sr-border);
+}
+
+.sr-header__title {
+  flex: 1;
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.sr-header__back {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  color: var(--sr-text);
+  background: transparent;
+  border: 1px solid var(--sr-border);
+  border-radius: 50%;
+}
+
+.sr-header__back svg,
+.sr-nav__icon svg {
+  width: 20px;
+  height: 20px;
+  fill: currentColor;
+}
+
+.sr-main {
+  flex: 1;
+  width: 100%;
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 1rem 0.85rem calc(64px + var(--sr-safe-bottom) + 1rem);
+}
+
+.sr-nav {
+  position: fixed;
+  inset: auto 0 0;
+  z-index: 30;
+  display: flex;
+  justify-content: space-around;
+  height: calc(62px + var(--sr-safe-bottom));
+  padding-bottom: var(--sr-safe-bottom);
+  background: var(--sr-surface);
+  border-top: 1px solid var(--sr-border);
+}
+
+/* Komponen <A> tidak menerima atribut tambahan, jadi gaya ditempel di pembungkus. */
+
+.sr-nav a {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.15rem;
+  font-size: 0.68rem;
+  color: var(--sr-muted);
+}
+
+.sr-nav a[aria-current="page"] {
+  color: var(--sr-accent);
+}
+
+.sr-offline-banner {
+  display: none;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.6rem 0.85rem 0;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.78rem;
+  color: #fbbf24;
+  border: 1px solid currentColor;
+  border-radius: 10px;
+}
+
+html[data-selarust-online="false"] .sr-offline-banner {
+  display: flex;
+}
+
+.sr-offline-banner__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.sr-pull {
+  position: relative;
+  touch-action: pan-y;
+}
+
+.sr-pull__indicator {
+  position: absolute;
+  top: -2rem;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  font-size: 0.72rem;
+  color: var(--sr-muted);
+  opacity: 0;
+}
+
+.sr-pull.is-pulling .sr-pull__indicator {
+  opacity: 1;
+}
+
+.sr-pull__spinner {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid var(--sr-border);
+  border-top-color: var(--sr-accent);
+}
+
+.sr-pull.is-armed .sr-pull__spinner {
+  border-top-color: #34d399;
+  animation: sr-spin 0.7s linear infinite;
+}
+
+.sr-pull__content {
+  transition: transform 0.18s ease-out;
+}
+
+.sr-pull.is-pulling .sr-pull__content {
+  transition: none;
+}
+
+@keyframes sr-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.sr-hero,
+.sr-page,
+.sr-section {
+  margin: 0 0 1.5rem;
+}
+
+.sr-hero {
+  padding: 1.1rem;
+  background: var(--sr-surface);
+  border: 1px solid var(--sr-border);
+  border-radius: 16px;
+}
+
+.sr-hero__eyebrow,
+.sr-overline {
+  margin: 0 0 0.4rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--sr-accent);
+}
+
+.sr-hero__title,
+.sr-title {
+  margin: 0 0 0.5rem;
+  font-size: 1.35rem;
+  line-height: 1.2;
+}
+
+.sr-hero__lead {
+  margin: 0 0 1rem;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--sr-muted);
+}
+
+.sr-section__title {
+  margin: 0 0 0.6rem;
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--sr-muted);
+}
+
+.sr-btn {
+  display: inline-flex;
+  margin-top: 0.5rem;
+}
+
+.sr-btn > a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.7rem 1.1rem;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #04122b;
+  background: var(--sr-accent);
+  border-radius: 999px;
+}
+
+.sr-btn--ghost > a {
+  color: var(--sr-text);
+  background: transparent;
+  border: 1px solid var(--sr-border);
+}
+
+.sr-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.55rem;
+}
+
+.sr-list__item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.7rem 0.85rem;
+  font-size: 0.86rem;
+  background: var(--sr-surface);
+  border: 1px solid var(--sr-border);
+  border-radius: 10px;
+}
+
+.sr-code {
+  font-family: ui-monospace, Menlo, monospace;
+  font-size: 0.82rem;
+  background: var(--sr-surface);
+  border: 1px solid var(--sr-border);
+  border-radius: 6px;
+  padding: 0.1rem 0.35rem;
+}
+
+.sr-muted {
+  color: var(--sr-muted);
+}
+
+.sr-small {
+  font-size: 0.78rem;
+}
+
+.sr-empty {
+  padding: 2rem 1rem;
+  text-align: center;
+}
+
+.sr-empty__code {
+  margin: 0 0 0.35rem;
+  font-size: 0.75rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--sr-accent);
+}
+
+.sr-empty__title {
+  margin: 0 0 0.5rem;
+  font-size: 1.15rem;
+}
+
+.sr-error {
+  padding: 0.7rem 0.85rem;
+  font-size: 0.84rem;
+  color: #f87171;
+  border: 1px solid currentColor;
+  border-radius: 10px;
+}
+/* ---------- gestur: swipe-back dari tepi kiri ---------- */
+
+.sr-app {
+  transition: transform 0.24s ease-out, box-shadow 0.24s ease-out;
+}
+
+.sr-app.is-swiping-back {
+  transition: none;
+  box-shadow: -14px 0 32px rgba(3, 7, 18, 0.45);
+}
+
+/* ---------- bottom sheet ---------- */
+
+.sr-sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  visibility: hidden;
+}
+
+.sr-sheet.is-open {
+  visibility: visible;
+}
+
+.sr-sheet__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(3, 7, 18, 0.55);
+  opacity: 0;
+  transition: opacity 0.22s ease;
+}
+
+.sr-sheet.is-open .sr-sheet__backdrop {
+  opacity: 1;
+}
+
+.sr-sheet__panel {
+  position: absolute;
+  inset: auto 0 0;
+  display: flex;
+  flex-direction: column;
+  max-height: 86vh;
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 0.4rem 1rem calc(var(--sr-safe-bottom) + 1.25rem);
+  background: var(--sr-surface);
+  border-top: 1px solid var(--sr-border);
+  border-radius: 20px 20px 0 0;
+  box-shadow: 0 -14px 34px rgba(3, 7, 18, 0.4);
+  transform: translateY(100%);
+  transition: transform 0.26s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+.sr-sheet.is-open .sr-sheet__panel {
+  transform: translateY(0);
+}
+
+.sr-sheet__panel.is-dragging {
+  transition: none;
+}
+
+.sr-sheet__panel:focus-visible {
+  outline: none;
+}
+
+.sr-sheet__handle {
+  width: 44px;
+  height: 4px;
+  margin: 0.35rem auto 0.7rem;
+  border-radius: 999px;
+  background: var(--sr-border);
+  flex: none;
+}
+
+.sr-sheet__title {
+  margin: 0 0 0.6rem;
+  font-size: 1rem;
+  flex: none;
+}
+
+.sr-sheet__body {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* Tombol ikon di header. */
+.sr-icon-btn {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  color: var(--sr-text);
+  background: var(--sr-surface-soft);
+  border: 1px solid var(--sr-border);
+  border-radius: 50%;
+}
+
+.sr-icon-btn:active {
+  background: color-mix(in srgb, var(--sr-accent) 18%, transparent);
+}
+
+.sr-icon-btn svg {
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
+}
+
+/* Baris pilihan di dalam sheet (mis. filter). */
+.sr-choice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.8rem 0.9rem;
+  font: inherit;
+  font-size: 0.9rem;
+  text-align: left;
+  color: var(--sr-text);
+  background: var(--sr-surface-soft);
+  border: 1px solid var(--sr-border);
+  border-radius: var(--sr-radius-sm);
+}
+
+.sr-choice[aria-pressed="true"] {
+  color: var(--sr-accent);
+  border-color: color-mix(in srgb, var(--sr-accent) 45%, transparent);
+}
+
+.sr-choices {
+  display: grid;
+  gap: 0.5rem;
+}
+
+/* ---------- transisi halaman (View Transitions API) ---------- */
+
+/* Arah animasi ditentukan kedalaman rute, bukan arah riwayat browser:
+   - masuk ke anak halaman (lebih dalam) → geser ke kiri
+   - naik ke halaman induk (lebih dangkal) → geser ke kanan
+   - pindah ke halaman selevel → fade
+   Kelas `sr-nav-*` dilaporkan `MobileLayout` (lewat `selarust::note_route_depth`)
+   saat halaman baru dibangun, yaitu di dalam update callback view transition —
+   jadi sudah terpasang sebelum browser menyusun lapisan animasinya. */
+
+/* Chrome shell tidak ikut animasi halaman. Header, banner offline, dan navigasi
+   bawah adalah saudara `.sr-main`, jadi tanpa nama transisi sendiri ketiganya
+   jatuh ke snapshot root. Lapisan view transition disusun menurut urutan
+   dokumen, bukan `z-index`, sehingga isi halaman yang bergeser tergambar di atas
+   nav yang `position: fixed` — itulah kedipan yang terlihat setiap navigasi.
+   Dengan nama sendiri ketiganya menjadi lapisan terpisah yang dibiarkan diam:
+   snapshot lama disembunyikan, snapshot baru tampil seketika, tanpa fade. */
+.sr-header {
+  view-transition-name: sr-chrome-header;
+}
+
+.sr-offline-banner {
+  view-transition-name: sr-chrome-banner;
+}
+
+.sr-nav {
+  view-transition-name: sr-chrome-nav;
+}
+
+html::view-transition-old(sr-chrome-header),
+html::view-transition-old(sr-chrome-banner),
+html::view-transition-old(sr-chrome-nav) {
+  animation: none;
+  mix-blend-mode: normal;
+  opacity: 0;
+}
+
+html::view-transition-new(sr-chrome-header),
+html::view-transition-new(sr-chrome-banner),
+html::view-transition-new(sr-chrome-nav) {
+  animation: none;
+  mix-blend-mode: normal;
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* Hanya isi <main> yang dianimasikan; chrome shell sudah punya lapisan
+     diamnya sendiri pada blok `sr-chrome-*` di atas. */
+  :root {
+    view-transition-name: none;
+  }
+
+  .sr-main {
+    view-transition-name: sr-page;
+    /* Lapisan view transition mewarisi latar ini, sehingga halaman yang
+       di-fade masuk benar-benar menutup halaman yang keluar. */
+    background: var(--sr-bg);
+  }
+
+  /* Bawaan: bila kedalaman rute tidak dilaporkan (halaman di luar MobileLayout)
+     cukup fade. Aturan berkelas di bawah menang karena urutannya lebih akhir. */
+  html.router-outlet-0::view-transition-old(sr-page) {
+    animation: sr-page-fade-out calc(var(--sr-motion-duration-fade) * 0.3) linear both;
+  }
+
+  html.router-outlet-0::view-transition-new(sr-page) {
+    animation:
+      sr-page-fade-in calc(var(--sr-motion-duration-fade) * 0.7) linear
+      calc(var(--sr-motion-duration-fade) * 0.3) both;
+  }
+
+  /* Masuk ke anak halaman: halaman baru geser dari kanan sambil fade masuk,
+     halaman lama geser ke kiri sambil fade keluar lebih dulu. */
+  html.sr-nav-child::view-transition-new(sr-page) {
+    animation:
+      sr-page-in-right var(--sr-motion-duration) var(--sr-motion-ease-enter) both,
+      sr-page-fade-in calc(var(--sr-motion-duration) * 0.75) linear both;
+  }
+
+  html.sr-nav-child::view-transition-old(sr-page) {
+    animation:
+      sr-page-out-left var(--sr-motion-duration) var(--sr-motion-ease-exit) both,
+      sr-page-fade-out calc(var(--sr-motion-duration) * 0.25) linear both;
+  }
+
+  /* Naik ke halaman induk: kebalikannya. */
+  html.sr-nav-parent::view-transition-new(sr-page) {
+    animation:
+      sr-page-in-left var(--sr-motion-duration) var(--sr-motion-ease-enter) both,
+      sr-page-fade-in calc(var(--sr-motion-duration) * 0.75) linear both;
+  }
+
+  html.sr-nav-parent::view-transition-old(sr-page) {
+    animation:
+      sr-page-out-right var(--sr-motion-duration) var(--sr-motion-ease-exit) both,
+      sr-page-fade-out calc(var(--sr-motion-duration) * 0.25) linear both;
+  }
+
+  /* Halaman selevel: "fade through" tanpa arah. */
+  html.sr-nav-level::view-transition-old(sr-page) {
+    animation: sr-page-fade-out calc(var(--sr-motion-duration-fade) * 0.3) linear both;
+  }
+
+  html.sr-nav-level::view-transition-new(sr-page) {
+    animation:
+      sr-page-fade-in calc(var(--sr-motion-duration-fade) * 0.7) linear
+      calc(var(--sr-motion-duration-fade) * 0.3) both;
+  }
+}
+
+@keyframes sr-page-out-left {
+  to {
+    transform: translateX(calc(var(--sr-motion-travel) * -1));
+  }
+}
+
+@keyframes sr-page-in-right {
+  from {
+    transform: translateX(var(--sr-motion-travel));
+  }
+}
+
+@keyframes sr-page-out-right {
+  to {
+    transform: translateX(var(--sr-motion-travel));
+  }
+}
+
+@keyframes sr-page-in-left {
+  from {
+    transform: translateX(calc(var(--sr-motion-travel) * -1));
+  }
+}
+
+@keyframes sr-page-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes sr-page-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+/* Fallback untuk browser tanpa View Transitions API. Halaman lama sudah dilepas
+   router sehingga tidak bisa dianimasikan, tetapi halaman baru tetap masuk
+   sesuai arah kelas `sr-nav-*` — jadi arahnya sama dengan jalur View
+   Transitions, bukan fade untuk semua navigasi. Kelas `sr-no-vt` dipasang
+   `selarust::note_route_depth` saat API-nya tidak ada, jadi tidak bergantung pada
+   tebakan `@supports`. */
+@media (prefers-reduced-motion: no-preference) {
+  html.sr-no-vt .sr-main {
+    /* Tanpa kelas arah (mis. halaman di luar MobileLayout) tetap fade. */
+    animation: sr-page-fade-in var(--sr-motion-duration-fade) linear both;
+  }
+
+  html.sr-no-vt.sr-nav-child .sr-main {
+    animation:
+      sr-page-in-right var(--sr-motion-duration) var(--sr-motion-ease-enter) both,
+      sr-page-fade-in calc(var(--sr-motion-duration) * 0.75) linear both;
+  }
+
+  html.sr-no-vt.sr-nav-parent .sr-main {
+    animation:
+      sr-page-in-left var(--sr-motion-duration) var(--sr-motion-ease-enter) both,
+      sr-page-fade-in calc(var(--sr-motion-duration) * 0.75) linear both;
+  }
+
+  html.sr-no-vt.sr-nav-level .sr-main {
+    animation: sr-page-fade-in var(--sr-motion-duration-fade) linear both;
+  }
+}
+/* Strip status sinkronisasi: muncul saat offline atau ada perubahan tertunda. */
+.sr-sync {
+  position: fixed;
+  left: 12px;
+  right: 12px;
+  bottom: calc(var(--sr-nav-height) + var(--sr-safe-bottom) + 10px);
+  z-index: 30;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--sr-border);
+  border-radius: var(--sr-radius-sm);
+  background: color-mix(in srgb, var(--sr-surface) 92%, transparent);
+  box-shadow: 0 10px 30px rgb(3 8 20 / 35%);
+  font-size: 0.78rem;
+  color: var(--sr-muted);
+  backdrop-filter: blur(10px);
+  opacity: 0;
+  transform: translateY(12px);
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s;
+}
+
+.sr-sync.is-visible {
+  opacity: 1;
+  transform: none;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.sr-sync__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--sr-off);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--sr-off) 24%, transparent);
+}
+
+.sr-sync__dot.is-on {
+  background: var(--sr-ok);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--sr-ok) 24%, transparent);
+}
+
+.sr-sync__label {
+  font-weight: 600;
+  color: var(--sr-text);
+}
+
+.sr-sync__count {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--sr-surface-soft);
+  color: var(--sr-text);
+}
+
+.sr-sync__error {
+  flex: 1 1 100%;
+  color: var(--sr-off);
+}
+
+.sr-sync__action {
+  margin-left: auto;
+  padding: 6px 12px;
+  border: 1px solid var(--sr-border);
+  border-radius: 999px;
+  background: var(--sr-accent);
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.sr-sync__action:disabled {
+  background: var(--sr-surface-soft);
+  color: var(--sr-muted);
+  cursor: default;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sr-sync {
+    transition: none;
+  }
+}

@@ -14,7 +14,7 @@
 use std::collections::HashMap;
 
 use leptos::prelude::*;
-use sayagi::{is_online, offline};
+use selarust::{is_online, offline};
 use serde::{Deserialize, Serialize};
 
 use crate::api::{
@@ -348,7 +348,7 @@ impl TodoStore {
     }
 
     /// Replays one batch, stopping at the first failure. Returns how many landed.
-    async fn replay_all(&self, queued: Vec<sayagi::QueuedMutation<TodoMutation>>) -> usize {
+    async fn replay_all(&self, queued: Vec<selarust::QueuedMutation<TodoMutation>>) -> usize {
         let mut remap: HashMap<i64, i64> = HashMap::new();
         let mut replayed = 0usize;
 

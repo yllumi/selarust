@@ -1,0 +1,46 @@
+[package]
+name = "selarust"
+description = "Runtime primitives of the Selarust PWA metaframework: mobile UI shell, route params and PWA wiring."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+
+[dependencies]
+leptos = { workspace = true }
+leptos_router = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+wasm-bindgen = { workspace = true, optional = true }
+js-sys = { version = "0.3", optional = true }
+wasm-bindgen-futures = { version = "0.4", optional = true }
+serde_json = { workspace = true, optional = true }
+# Not optional: the touch handlers in `components` are compiled for the SSR
+# target too (they simply never run there), and leptos already pulls web-sys in
+# for both profiles.
+web-sys = { version = "0.3", features = [
+    "CssStyleDeclaration",
+    "Document",
+    "Element",
+    "HtmlElement",
+    "History",
+    "KeyboardEvent",
+    "Location",
+    "Navigator",
+    "Touch",
+    "TouchEvent",
+    "TouchList",
+    "Window",
+] }
+
+[features]
+# Client-side hydration (Wasm). Enabled by the app's `hydrate` feature.
+hydrate = [
+    "leptos/hydrate",
+    "dep:js-sys",
+    "dep:serde_json",
+    "dep:wasm-bindgen",
+    "dep:wasm-bindgen-futures",
+]
+# Server-side rendering. Enabled by the app's `ssr` feature.
+ssr = ["leptos/ssr", "leptos_router/ssr"]

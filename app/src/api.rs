@@ -2,7 +2,7 @@
 //!
 //! Setiap fungsi beranotasi `#[server]` otomatis mendapat endpoint HTTP di bawah
 //! `/api/` — namanya `<nama_fungsi>` ditambah hash kecil dari lokasi sumber, mis.
-//! `/api/list_todos4286897385061139490`. Itulah sebabnya `Sayagi.toml` menaruh
+//! `/api/list_todos4286897385061139490`. Itulah sebabnya `Selarust.toml` menaruh
 //! `/api/` di `network_first` untuk service worker, bukan daftar URL spesifik
 //! yang harus diperbarui setiap kali ada fungsi baru.
 

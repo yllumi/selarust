@@ -1,0 +1,56 @@
+# {{project_title}}
+
+Aplikasi mobile-first PWA yang dibangun dengan metaframework **Selarust**
+(Axum + Leptos + SQLite, frontend dikompilasi ke WebAssembly).
+
+## Menjalankan
+
+```bash
+cargo leptos watch      # dev server + hot reload di http://127.0.0.1:3000
+cargo leptos build --release
+```
+
+## Menambah halaman
+
+Cukup tambahkan file di `src/pages/` — rutenya dibuat otomatis saat build:
+
+| File                          | URL                |
+| ----------------------------- | ------------------ |
+| `src/pages/index.rs`          | `/`                |
+| `src/pages/hello.rs`          | `/hello`           |
+| `src/pages/containers/index.rs` | `/containers`    |
+| `src/pages/containers/[id].rs`  | `/containers/:id` |
+
+Setiap file halaman mengekspor satu komponen:
+
+```rust
+use leptos::prelude::*;
+use selarust::{param, MobileLayout};
+
+#[component]
+pub fn Page() -> impl IntoView {
+    let id = param("id");
+    view! {
+        <MobileLayout title="Detail" show_back=true>
+            <h2>"Container " {move || id.get()}</h2>
+        </MobileLayout>
+    }
+}
+```
+
+## Mengubah konfigurasi
+
+`Selarust.toml` mengatur nama aplikasi, warna tema, ukuran ikon, aturan cache
+service worker, dan koneksi SQLite. Setelah mengubahnya, jalankan
+`cargo leptos watch` (atau `selarust pwa`) agar manifest/service worker/ikon
+digenerate ulang.
+
+## Berkas hasil generate
+
+Jangan edit manual — semuanya ditulis ulang setiap build:
+
+* `public/manifest.webmanifest`
+* `public/sw.js`
+* `public/icons/*.png`
+* `$OUT_DIR/routes.rs`
+* `$OUT_DIR/config.rs`

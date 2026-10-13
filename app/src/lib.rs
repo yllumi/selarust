@@ -22,7 +22,7 @@ pub mod db;
 #[cfg(feature = "ssr")]
 pub mod sync;
 
-/// Rute yang digenerate dari `src/pages` oleh `sayagi-build`.
+/// Rute yang digenerate dari `src/pages` oleh `selarust-build`.
 ///
 /// Setiap file halaman dideklarasikan di sini lewat `#[path]` absolut, sehingga
 /// nama file seperti `[id].rs` bisa tetap dipakai sebagai modul Rust.
@@ -31,7 +31,7 @@ pub mod pages {
     include!(concat!(env!("OUT_DIR"), "/routes.rs"));
 }
 
-/// Konstanta yang dipanggang dari `Sayagi.toml` saat build (`APP_NAME`, `THEME_COLOR`, …).
+/// Konstanta yang dipanggang dari `Selarust.toml` saat build (`APP_NAME`, `THEME_COLOR`, …).
 pub mod config {
     include!(concat!(env!("OUT_DIR"), "/config.rs"));
 }

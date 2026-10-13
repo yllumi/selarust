@@ -1,4 +1,4 @@
-# Sayagi Rust — boilerplate PWA mobile-first
+# Selarust — boilerplate PWA mobile-first
 
 Metaframework PWA **mobile-first** di atas **Axum** (server) + **Leptos**
 (SSR + hydration Wasm) + **SQLite** (tertanam), dengan *file-based routing* dan
@@ -17,11 +17,11 @@ aturan kerja untuk agen/AI ada di
 ├── Cargo.toml               # workspace + profil wasm-release
 ├── rust-toolchain.toml      # stable + target wasm32-unknown-unknown
 ├── crates/
-│   ├── sayagi-build/        # codegen: rute, config, manifest, service worker, ikon
-│   ├── sayagi/              # runtime: MobileLayout, HeaderBar, BottomNav, param(), PWA wiring
-│   └── sayagi-cli/          # CLI `sayagi`: new / dev / build / routes / pwa
+│   ├── selarust-build/        # codegen: rute, config, manifest, service worker, ikon
+│   ├── selarust/              # runtime: MobileLayout, HeaderBar, BottomNav, param(), PWA wiring
+│   └── selarust-cli/          # CLI `selarust`: new / dev / build / routes / pwa
 └── app/                     # contoh aplikasi (mobile-pwa)
-    ├── Sayagi.toml          # SATU sumber konfigurasi
+    ├── Selarust.toml          # SATU sumber konfigurasi
     ├── build.rs             # memanggil generator pada setiap build
     ├── public/              # aset statis (manifest/sw/ikon ditulis generator)
     ├── style/main.css
@@ -50,7 +50,7 @@ aturan kerja untuk agen/AI ada di
 ```bash
 rustup toolchain install stable --profile minimal
 rustup target add wasm32-unknown-unknown
-cargo install cargo-leptos --locked     # disediakan otomatis oleh `sayagi dev|build`
+cargo install cargo-leptos --locked     # disediakan otomatis oleh `selarust dev|build`
 ```
 
 ## Menjalankan contoh
@@ -64,26 +64,105 @@ cargo leptos build --release
 Atau lewat CLI metaframework:
 
 ```bash
-cargo run -p sayagi-cli -- routes --dir app   # tabel rute hasil pemindaian
-cargo run -p sayagi-cli -- pwa --dir app      # regenerate manifest/sw/ikon
-cargo run -p sayagi-cli -- new /tmp/demo-app  # scaffold proyek baru
+cargo run -p selarust-cli -- routes --dir app   # tabel rute hasil pemindaian
+cargo run -p selarust-cli -- pwa --dir app      # regenerate manifest/sw/ikon
+cargo run -p selarust-cli -- new /tmp/demo-app  # scaffold proyek baru
 ```
+
+## Menjalankan dengan Docker
+
+Image produksi berisi binary Axum + bundle Wasm + seluruh aset PWA, dibangun
+lewat [`Dockerfile`](./Dockerfile) dua tahap (builder `rust:1.99-slim-bookworm`,
+runtime `debian:bookworm-slim`).
+
+```bash
+docker compose up --build         # http://127.0.0.1:8080
+docker compose logs -f app
+docker compose down               # data tetap ada di volume `selarust-data`
+```
+
+Tanpa compose:
+
+```bash
+docker build -t selarust-todo .
+docker run --rm -p 8080:3000 -v selarust-data:/data selarust-todo
+```
+
+### Konfigurasi lewat environment
+
+Seluruh nilai di [docker-compose.yml](./docker-compose.yml) menerima environment
+variable, jadi deployment tidak perlu menyunting berkas compose:
+
+```bash
+cp .env.example .env                    # salinan lokal, diabaikan git
+SELARUST_PORT=3000 docker compose up    # dari shell; menang atas .env
+docker compose --env-file .env.prod up  # berkas env lain
+```
+
+| Variable | Bawaan | Guna |
+| --- | --- | --- |
+| `SELARUST_PORT` | `8080` | Port di host |
+| `SELARUST_APP_PORT` | `3000` | Port di container **dan** alamat listen Leptos — satu nilai untuk keduanya supaya tidak bisa berbeda |
+| `SELARUST_BIND` | `0.0.0.0` | Antarmuka host; `127.0.0.1` untuk lokal saja |
+| `SELARUST_IMAGE` | `selarust-todo:latest` | Tag image, mis. diarahkan ke registry |
+| `SELARUST_DATABASE_URL` | `sqlite:///data/selarust.db` | URL SQLite di dalam container |
+| `SELARUST_DATA_DIR` | `selarust-data` | Nama volume atau path host (mis. `./data`) untuk `/data` |
+| `SELARUST_PROJECT` | `selarust` | Nama proyek compose (prefix container/volume) |
+| `SELARUST_RESTART` | `unless-stopped` | Kebijakan restart |
+| `SELARUST_HEALTHCHECK_INTERVAL` | `30s` | Interval healthcheck |
+| `SELARUST_ENV_FILE` | `.env` | Berkas env tambahan yang diteruskan ke container |
+| `LEPTOS_ENV` | `PROD` | Mode Leptos (`DEV` menyalakan auto-reload) |
+| `LEPTOS_SITE_ROOT`, `LEPTOS_OUTPUT_NAME` | `/app/site`, `mobile-pwa` | Kontrak runtime Leptos |
+
+Selain variabel di atas, isi berkas `.env` juga **diteruskan ke dalam container**
+(`env_file`), sehingga variabel aplikasi tambahan bisa diberikan tanpa mengubah
+compose. Nilai yang tertulis eksplisit di `environment:` selalu menang.
+
+Catatan:
+
+* **Port host default 8080**, bukan 3000, supaya tidak bertabrakan dengan
+  `cargo leptos watch` di mesin pengembangan. Ganti dengan
+  `SELARUST_PORT=3000 docker compose up --build`, atau set permanen di `.env`.
+* **Database lewat volume.** Container menulis SQLite ke `/data/selarust.db`
+  (`SELARUST_DATABASE_URL=sqlite:///data/selarust.db`); volume `selarust-data` membuat
+  data bertahan saat image diganti. Tanpa volume, data hilang bersama container.
+* **Container dijalankan tanpa hak root** (user `selarust`, uid 10001) dan
+  filesystem-nya read-only kecuali `/data` dan `/tmp` (`read_only: true` +
+  `tmpfs: /tmp` di [docker-compose.yml](./docker-compose.yml)).
+* **Kesehatan container** dicek lewat `HEALTHCHECK` (`curl -fsS /`), jadi
+  `docker compose ps` langsung menunjukkan statusnya.
+* **Tidak ada dependensi SQLite sistem.** SQLite dikompilasi dari sumber
+  (`libsqlite3-sys` feature `bundled`), sehingga `ldd` binary hanya menyentuh
+  libc/libm/libgcc — itulah sebabnya runtime cukup `debian:bookworm-slim`.
+* **Kontrak runtime eksplisit.** Binary membaca `LEPTOS_SITE_ROOT`,
+  `LEPTOS_SITE_ADDR`, `LEPTOS_OUTPUT_NAME`, dan `LEPTOS_ENV` dari environment
+  (metadata `Cargo.toml` hanya dipakai `cargo leptos watch/serve`). Semuanya
+  sudah disetel di image dan di compose; kalau salah satu diubah, ubah keduanya.
+* **Aset PWA digenerate eksplisit sebelum build** (`selarust pwa --dir app` di
+  dalam [Dockerfile](./Dockerfile)). Alasannya: aset ditulis `build.rs`, sementara
+  `cargo leptos` menyalin direktori aset ke site root sebelum build berjalan —
+  dan pada build ber-cache cargo bisa melewati `build.rs` sepenuhnya, sehingga
+  image kehilangan manifest, service worker, ikon, dan Workbox tanpa peringatan.
+  Langkah eksplisit itu membuat build container deterministik.
+* Rebuild berikutnya jauh lebih cepat karena `target/` dan registry Cargo
+  dipasang sebagai cache BuildKit; hanya crate yang berubah yang dikompilasi
+  ulang.
 
 ## Bagaimana bagian-bagiannya saling terhubung
 
 | Konsep ([ARCHITECTURE.md](./ARCHITECTURE.md)) | Wujudnya di repo ini |
 | --- | --- |
-| File-based routing (§4) | [`sayagi-build/src/routes.rs`](./crates/sayagi-build/src/routes.rs) memindai `src/pages` → `$OUT_DIR/routes.rs` berisi `#[path] pub mod`, tabel `ROUTES`, dan komponen `FileRoutes` |
+| File-based routing (§4) | [`selarust-build/src/routes.rs`](./crates/selarust-build/src/routes.rs) memindai `src/pages` → `$OUT_DIR/routes.rs` berisi `#[path] pub mod`, tabel `ROUTES`, dan komponen `FileRoutes` |
 | Jalur data: server functions (§5.3) | [`app/src/api.rs`](./app/src/api.rs) — fungsi `#[server]` dipublikasikan otomatis di `/api/<nama_fungsi><hash>`; baca lewat GET (`input = GetUrl`) supaya bisa di-cache |
-| Auto-PWA: manifest, service worker, ikon (§4) | [`sayagi-build/src/pwa.rs`](./crates/sayagi-build/src/pwa.rs) menulis `manifest.webmanifest`, `sw.js`, runtime Workbox, dan `icons/*.png` dari `Sayagi.toml` |
-| Lapisan cache PWA (§5.6) | `sw.js` memakai **Workbox 7** yang di-vendor lokal ([template](./crates/sayagi-build/src/templates/sw.js), [vendor + NOTICE](./crates/sayagi-build/vendor/workbox/NOTICE.md)): precache berversi, network-first untuk `/api/` dan `/pkg/`, SWR untuk ikon/aset, `setCatchHandler` menyajikan `/offline` |
+| Auto-PWA: manifest, service worker, ikon (§4) | [`selarust-build/src/pwa.rs`](./crates/selarust-build/src/pwa.rs) menulis `manifest.webmanifest`, `sw.js`, runtime Workbox, dan `icons/*.png` dari `Selarust.toml` |
+| Lapisan cache PWA (§5.6) | `sw.js` memakai **Workbox 7** yang di-vendor lokal ([template](./crates/selarust-build/src/templates/sw.js), [vendor + NOTICE](./crates/selarust-build/vendor/workbox/NOTICE.md)): precache berversi, network-first untuk `/api/` dan `/pkg/`, SWR untuk ikon/aset, `setCatchHandler` menyajikan `/offline` |
 | CRUD contoh | Server functions di [`app/src/api.rs`](./app/src/api.rs) + tabel `todos` di [`app/src/db.rs`](./app/src/db.rs): list, detail, tambah, ubah, tandai selesai, hapus |
-| Offline-first: snapshot + antrean mutasi (§5.4) | [`crates/sayagi/src/offline.rs`](./crates/sayagi/src/offline.rs) (IndexedDB) + [`app/src/store.rs`](./app/src/store.rs) (overlay optimistis, koalesensi, replay) |
+| Offline-first: snapshot + antrean mutasi (§5.4) | [`crates/selarust/src/offline.rs`](./crates/selarust/src/offline.rs) (IndexedDB) + [`app/src/store.rs`](./app/src/store.rs) (overlay optimistis, koalesensi, replay) |
 | Sinkronisasi realtime (§5.5) | [`app/src/sync.rs`](./app/src/sync.rs) (hub broadcast + `/api/ws`) dan [`app/src/realtime.rs`](./app/src/realtime.rs) (klien → store) |
-| Mobile UI shell (§2, §5.2) | [`sayagi/src/components.rs`](./crates/sayagi/src/components.rs) — `MobileLayout`, `HeaderBar`, `BottomNav`, `PullToRefresh`, `BottomSheet`, swipe-back |
+| Mobile UI shell (§2, §5.2) | [`selarust/src/components.rs`](./crates/selarust/src/components.rs) — `MobileLayout`, `HeaderBar`, `BottomNav`, `PullToRefresh`, `BottomSheet`, swipe-back |
 | SQLite tertanam (WAL) (§2) | [`app/src/db.rs`](./app/src/db.rs) — pool sqlx, `journal_mode=WAL`, migrasi + seed otomatis |
 | Async Runtime: Tokio (§2) | `#[tokio::main]` di [`app/src/main.rs`](./app/src/main.rs) |
-| Build tooling & CLI (§3) | [`sayagi-cli`](./crates/sayagi-cli/src/main.rs) membungkus `cargo leptos`, plus codegen sendiri ([`sayagi-build`](./crates/sayagi-build/src/lib.rs)) |
+| Build tooling & CLI (§3) | [`selarust-cli`](./crates/selarust-cli/src/main.rs) membungkus `cargo leptos`, plus codegen sendiri ([`selarust-build`](./crates/selarust-build/src/lib.rs)) |
 
 ### Konvensi halaman
 
@@ -91,7 +170,7 @@ Setiap berkas di `src/pages` harus mengekspor satu komponen bernama `Page`:
 
 ```rust
 use leptos::prelude::*;
-use sayagi::{param, MobileLayout};
+use selarust::{param, MobileLayout};
 
 #[component]
 pub fn Page() -> impl IntoView {
@@ -121,7 +200,7 @@ di tabel rute tanpa langkah manual.
 
 ## Mobile shell
 
-Semua primitif hidup di crate `sayagi`, jadi aplikasi berikutnya tinggal pakai:
+Semua primitif hidup di crate `selarust`, jadi aplikasi berikutnya tinggal pakai:
 
 | Primitif | Kegunaan |
 | --- | --- |
@@ -139,19 +218,19 @@ Catatan penerapan:
   bergeser sebagai umpan balik. Gestur bersifat idempoten supaya `touchend` yang
   disusul `touchcancel` tidak memanggil `history.back()` dua kali.
 * **Transisi halaman** memakai View Transitions API lewat `<Routes transition=…>`
-  (leptos_router), dengan nama transisi `sy-page` pada `.sy-main`. Arahnya
+  (leptos_router), dengan nama transisi `sr-page` pada `.sr-main`. Arahnya
   ditentukan **kedalaman rute**, bukan arah riwayat: riwayat hanya tahu
   maju/mundur, sehingga pindah ke halaman selevel ikut terlihat seperti "maju"
   dan setiap mundur terlihat seperti "naik".
 
   | Perpindahan | Kelas di `<html>` | Animasi |
   | --- | --- | --- |
-  | Masuk anak halaman (`/todos` → `/todos/:id`) | `sy-nav-child` | lama keluar ke kiri, baru masuk dari kanan |
-  | Naik ke induk (`/todos/:id` → `/todos`, atau ke `/`) | `sy-nav-parent` | lama keluar ke kanan, baru masuk dari kiri |
-  | Selevel (`/todos` → `/dashboard`) | `sy-nav-level` | silang fade |
+  | Masuk anak halaman (`/todos` → `/todos/:id`) | `sr-nav-child` | lama keluar ke kiri, baru masuk dari kanan |
+  | Naik ke induk (`/todos/:id` → `/todos`, atau ke `/`) | `sr-nav-parent` | lama keluar ke kanan, baru masuk dari kiri |
+  | Selevel (`/todos` → `/dashboard`) | `sr-nav-level` | silang fade |
 
   `MobileLayout` melaporkan kedalaman halaman lewat
-  [`sayagi::note_route_depth`](./crates/sayagi/src/transitions.rs), dan komponen
+  [`selarust::note_route_depth`](./crates/selarust/src/transitions.rs), dan komponen
   itu dibangun ulang **di dalam update callback view transition** — jadi kelasnya
   sudah ada sebelum browser menyusun lapisan animasi. Membaca URL di awal
   transisi tidak bisa dipakai: router baru `pushState` setelah transisi dimulai.
@@ -170,45 +249,45 @@ Catatan penerapan:
 
   | Token | Nilai | Dipakai untuk |
   | --- | --- | --- |
-  | `--sy-motion-duration` | `450ms` | geser penuh kedua arah |
-  | `--sy-motion-travel` | `25%` | jarak geser halaman |
-  | `--sy-motion-duration-fade` | `300ms` | *fade through* halaman selevel |
-  | `--sy-motion-ease-enter` | `cubic-bezier(0.05, 0.7, 0.1, 1)` | halaman masuk |
-  | `--sy-motion-ease-exit` | `cubic-bezier(0.3, 0, 0.8, 0.15)` | halaman keluar |
+  | `--sr-motion-duration` | `450ms` | geser penuh kedua arah |
+  | `--sr-motion-travel` | `25%` | jarak geser halaman |
+  | `--sr-motion-duration-fade` | `300ms` | *fade through* halaman selevel |
+  | `--sr-motion-ease-enter` | `cubic-bezier(0.05, 0.7, 0.1, 1)` | halaman masuk |
+  | `--sr-motion-ease-exit` | `cubic-bezier(0.3, 0, 0.8, 0.15)` | halaman keluar |
 
   Setiap lapisan menjalankan **dua** animasi sekaligus: geser penuh 450 ms plus
   fade linear yang lebih pendek. Halaman masuk menyentuh opasitas 1 pada 75%
   durasi (337,5 ms) dan halaman keluar sudah hilang pada 25% durasi (112,5 ms),
   jadi isi halaman baru muncul perlahan di tengah geseran sementara halaman lama
-  cepat menghilang. `.sy-main` juga diberi
-  `background: var(--sy-bg)` supaya lapisan view transition tidak transparan
+  cepat menghilang. `.sr-main` juga diberi
+  `background: var(--sr-bg)` supaya lapisan view transition tidak transparan
   (tanpa itu halaman lama terlihat menembus halaman baru saat fade).
   Pindah selevel memakai *fade through* 300 ms dengan pembagian 30/70.
 * **Chrome shell tidak ikut beranimasi.** Header, banner offline, dan navigasi
   bawah adalah saudara `<main>`, jadi tanpa `view-transition-name` sendiri
   ketiganya jatuh ke snapshot `root` dan ikut cross-fade bawaan browser. Lapisan
   view transition juga disusun menurut urutan dokumen, bukan `z-index`: lapisan
-  isi halaman (`sy-page`) yang bergeser tergambar **di atas** nav yang
+  isi halaman (`sr-page`) yang bergeser tergambar **di atas** nav yang
   `position: fixed`, sehingga nav sempat berubah warna di tengah animasi —
   itulah kedipan yang terlihat pada setiap navigasi. Kini masing-masing punya
-  lapisan sendiri (`sy-chrome-header`, `sy-chrome-banner`, `sy-chrome-nav`)
+  lapisan sendiri (`sr-chrome-header`, `sr-chrome-banner`, `sr-chrome-nav`)
   dengan `animation: none`: snapshot lama disembunyikan dan snapshot baru tampil
   utuh sejak frame pertama, jadi chrome diam sementara isi halaman bergerak.
   Terukur di Chromium: warna area nav dan header sama persis sebelum, selama
   (dibekukan di 0/40/120/225/340/440 ms), dan sesudah transisi untuk ketiga arah
   navigasi.
 * **Browser tanpa View Transitions API** tetap mendapat arah yang sama: kelas
-  `sy-no-vt` dipasang saat API-nya tidak ada, dan CSS menganimasikan halaman baru
-  (`sy-page-in-right` / `sy-page-in-left` / fade). Halaman lama tidak bisa
+  `sr-no-vt` dipasang saat API-nya tidak ada, dan CSS menganimasikan halaman baru
+  (`sr-page-in-right` / `sr-page-in-left` / fade). Halaman lama tidak bisa
   dianimasikan pada jalur ini karena sudah dilepas router.
 * **`prefers-reduced-motion: reduce` membuat semuanya fade.** Seluruh animasi
   transisi isi halaman dibungkus `@media (prefers-reduced-motion: no-preference)`,
-  jadi lapisan `sy-page` memakai crossfade bawaan view transition (chrome shell
-  tetap diam karena aturan `sy-chrome-*` berada di luar media query). Cek dengan
+  jadi lapisan `sr-page` memakai crossfade bawaan view transition (chrome shell
+  tetap diam karena aturan `sr-chrome-*` berada di luar media query). Cek dengan
   `matchMedia('(prefers-reduced-motion: reduce)').matches` di DevTools; kalau
   hasilnya `true`, fade itu memang disengaja (pengaturan sistem).
 * **`BottomSheet` di-teleport ke `document.body`.** `view-transition-name` pada
-  `.sy-main` membuat *stacking context*, sehingga sheet `position: fixed` yang
+  `.sr-main` membuat *stacking context*, sehingga sheet `position: fixed` yang
   bersarang di dalamnya akan tergambar **di bawah** header dan navigasi bawah.
   Karena itu `BottomSheet` merender markupnya lewat `Portal`.
 * **`overscroll-behavior-x: none`** dipasang di `html, body` pada stylesheet
@@ -237,7 +316,7 @@ IndexedDB ────┘        │
 ```
 
 * **Snapshot lokal.** Setiap daftar hasil server disimpan ke IndexedDB
-  (`sayagi-offline` → store `kv`, kunci `todos`), jadi reload saat offline tetap
+  (`selarust-offline` → store `kv`, kunci `todos`), jadi reload saat offline tetap
   menampilkan data terakhir.
 * **Antrean mutasi.** `store.enqueue()` menulis ke store `queue` (autoIncrement)
   lalu menerapkan hasilnya secara optimistis: baris baru memakai id sementara
@@ -292,6 +371,21 @@ mutasi selalu masuk antrean dulu, online maupun offline.
 
 ## Catatan perilaku
 
+* **Aset PWA hanya ditulis saat `build.rs` benar-benar berjalan.** Kalau
+  `app/public/` dihapus (checkout baru, image container, CI ber-cache) sementara
+  cargo menganggap `build.rs` sudah segar, aset itu tidak akan dibuat ulang dan
+  site root kehilangan manifest maupun service worker. Karena itu build container
+  menjalankan `selarust pwa` lebih dulu, dan `Selarust.toml`/`src/pages` bisa
+  disentuh untuk memaksa generasi ulang di mesin pengembangan.
+* **Aset PWA digenerate ke `app/public/` *dan* ke site root.** `cargo leptos`
+  menyalin `assets-dir` ke site root sebelum `cargo build` berjalan, jadi berkas
+  yang dibuat `build.rs` pada build yang sama (manifest, `sw.js`, ikon, Workbox)
+  perlu dipublikasikan sendiri oleh generator — kalau tidak, checkout baru
+  (hasil `selarust new`, clone segar, atau image Docker) menyajikan halaman tanpa
+  manifest dan tanpa service worker sampai dibangun dua kali. Publikasinya
+  memakai `LEPTOS_SITE_ROOT` yang diekspor cargo-leptos ke build script, dan
+  dilewati saat tidak ada (mis. `selarust pwa` di luar build Leptos). Lihat
+  [`crates/selarust-build/src/site.rs`](./crates/selarust-build/src/site.rs).
 * **Service worker hanya aktif di build release.** Di build debug, `cargo leptos
   watch` menyajikan aset yang berubah setiap rebuild, sementara aturan navigasi
   service worker meng-cache halaman. Karena itu build debug justru membongkar
@@ -323,7 +417,7 @@ mutasi selalu masuk antrean dulu, online maupun offline.
   JS, lalu menyimpannya ke cache runtime. Permintaan pertama sebelum worker aktif
   tidak pernah lewat worker, jadi tanpa langkah ini halaman offline hanya bisa
   memuat HTML tanpa Wasm. Worker juga menyimpan dokumen rute yang sedang dibuka
-  (`sayagi:warm-document`): router klien tidak pernah meminta dokumen saat
+  (`selarust:warm-document`): router klien tidak pernah meminta dokumen saat
   berpindah halaman, sehingga menyimpan dokumen rute inilah yang membuat reload
   offline bekerja. Semua kegagalan pemanasan diabaikan agar install tidak batal.
 * **Yang tersedia saat offline:** dokumen rute yang pernah dibuka (utuh dengan data
@@ -346,25 +440,25 @@ mutasi selalu masuk antrean dulu, online maupun offline.
   `overscroll-behavior-x: none` wajib ada agar Chrome Android tidak melakukan
   navigasi mundur sendiri di samping `history.back()` milik shell.
 * **Versi cache ikut berubah setiap kali sumber aplikasi berubah.** `sw.js`
-  memakai `sayagi-<hash>` sebagai nama cache, dan hash-nya dihitung dari isi
-  `Sayagi.toml` + pohon sumber aplikasi (bukan hanya konfigurasi), sehingga deploy
+  memakai `selarust-<hash>` sebagai nama cache, dan hash-nya dihitung dari isi
+  `Selarust.toml` + pohon sumber aplikasi (bukan hanya konfigurasi), sehingga deploy
   berisi perubahan kode tidak akan menyajikan HTML lama berdampingan dengan Wasm
   baru. Entri precache juga memakai revisi yang sama.
 * **`<A>` tidak menerima atribut tambahan** di leptos_router 0.8. Karena itu
   komponen tombol (`LinkButton`) menaruh gaya di elemen pembungkus dan CSS
-  menyasar `.sy-btn > a`; status aktif navigasi bawah memakai
+  menyasar `.sr-btn > a`; status aktif navigasi bawah memakai
   `aria-current="page"` yang dipasang router sendiri.
 
 ## Deviasi dari rencana awal
 
 * **Service worker** digenerate sebagai berkas JS klasik
-  ([template](./crates/sayagi-build/src/templates/sw.js)), bukan dikompilasi ke Wasm —
+  ([template](./crates/selarust-build/src/templates/sw.js)), bukan dikompilasi ke Wasm —
   spesifikasi Web Platform mewajibkan service worker berupa worker JavaScript.
   Sisi Rust tetap yang memasang dan mengelola versinya
   ([`app/src/service_worker.rs`](./app/src/service_worker.rs)).
 * **Workbox di-vendor, tidak dari CDN.**
-  [`crates/sayagi-build/vendor/workbox/`](./crates/sayagi-build/vendor/workbox/NOTICE.md)
-  menyimpan runtime resmi Workbox 7.4.1 (MIT); `sayagi-build` menyalinnya ke
+  [`crates/selarust-build/vendor/workbox/`](./crates/selarust-build/vendor/workbox/NOTICE.md)
+  menyimpan runtime resmi Workbox 7.4.1 (MIT); `selarust-build` menyalinnya ke
   `public/workbox/` setiap build dan `sw.js` memuatnya lewat
   `importScripts("/workbox/workbox-sw.js")`. Instalasi worker jadi tetap jalan
   saat perangkat offline dan tidak bergantung pada domain pihak ketiga.
@@ -393,7 +487,7 @@ cargo leptos serve --release --manifest-path app/Cargo.toml
 Saat server jalan, hal-hal ini bisa dicek langsung:
 
 ```bash
-curl -s localhost:3000/todos | grep sy-todo__title             # SSR + SQLite
+curl -s localhost:3000/todos | grep sr-todo__title             # SSR + SQLite
 curl -sI localhost:3000/manifest.webmanifest                    # manifest hasil generate
 curl -sI localhost:3000/sw.js                                   # service worker hasil generate
 curl -s "localhost:3000/api/list_todos4286897385061139490"      # GET baca (bisa di-cache)
@@ -420,11 +514,11 @@ IndexedDB dan tampil optimistis, reload offline memuat dokumen + Wasm dari cache
 dan daftar dari snapshot, dan hidupkan server lagi untuk memastikan antrean diputar
 ulang sampai database server. Semuanya 24/24 lulus. Arah animasi transisi diuji
 terpisah dengan membaca nama animasi lapisan view transition saat transisi
-berjalan: masuk anak halaman (`sy-nav-child`, `sy-page-in-right`), naik ke induk
-(`sy-nav-parent`, `sy-page-in-left`, termasuk lewat swipe-back), dan selevel
-(`sy-nav-level`, fade) — 11/11 lulus, termasuk cek tidak ada view transition yang
+berjalan: masuk anak halaman (`sr-nav-child`, `sr-page-in-right`), naik ke induk
+(`sr-nav-parent`, `sr-page-in-left`, termasuk lewat swipe-back), dan selevel
+(`sr-nav-level`, fade) — 11/11 lulus, termasuk cek tidak ada view transition yang
 dibatalkan. Jalur cadangan diuji dengan menghapus `document.startViewTransition`
-dari halaman: arahnya tetap benar (`sy-no-vt` + kelas arah) — 4/4 lulus. Angka
+dari halaman: arahnya tetap benar (`sr-no-vt` + kelas arah) — 4/4 lulus. Angka
 gerak Material diuji dengan membekukan transisi pada waktu tertentu lalu membaca
 durasi, easing, dan opasitas lapisannya (fade masuk terbaca 0,444 → 0,889, fade
 halaman lama 0; geser 450 ms, fade 337,5 ms) — 13/13 lulus. Stabilitas chrome

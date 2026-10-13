@@ -1,0 +1,27 @@
+# Konteks build untuk image produksi (lihat Dockerfile).
+# Semua yang tidak dibutuhkan kompilasi dibuang supaya konteks kecil dan cache
+# lapisan tidak mudah batal.
+
+# Hasil build lokal: selalu dibangun ulang di dalam container.
+target/
+
+# Database runtime (dibuat aplikasi, bukan bagian dari image).
+*.db
+*.db-shm
+*.db-wal
+
+# Aset PWA hasil generate: dibuat ulang oleh build.rs di dalam container.
+app/public/manifest.webmanifest
+app/public/sw.js
+app/public/icons/
+app/public/workbox/
+
+# Riwayat & berkas pengembangan.
+.git/
+.github/
+.gitignore
+*.md
+
+# Berkas sementara.
+**/*.rs.bk
+**/.DS_Store

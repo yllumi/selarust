@@ -15,7 +15,7 @@ use crate::store::TodoStore;
 #[cfg(feature = "hydrate")]
 use leptos::prelude::*;
 #[cfg(feature = "hydrate")]
-use sayagi::sync;
+use selarust::sync;
 
 /// Pesan dari server.
 #[derive(Debug, Clone, Deserialize)]
@@ -48,7 +48,7 @@ pub enum ServerMessage {
 /// Menyambungkan kanal sinkronisasi dan memasang efek-efeknya.
 ///
 /// Mengembalikan `None` di server (tidak ada WebSocket saat SSR).
-pub fn start(store: TodoStore) -> Option<sayagi::SyncClient> {
+pub fn start(store: TodoStore) -> Option<selarust::SyncClient> {
     #[cfg(feature = "hydrate")]
     {
         // Snapshot lokal dipakai lebih dulu supaya daftar langsung terlihat,
@@ -92,9 +92,9 @@ pub fn handle(store: TodoStore, payload: &str) {
         Ok(ServerMessage::Snapshot { todos }) => store.replace(todos),
         Ok(ServerMessage::Todo { event }) => store.apply(&event),
         Ok(ServerMessage::Hello { version }) => {
-            leptos::logging::log!("[sayagi] sync tersambung ke server {version}");
+            leptos::logging::log!("[selarust] sync tersambung ke server {version}");
         }
         Ok(ServerMessage::Pong) | Ok(ServerMessage::Echo { .. }) => {}
-        Err(error) => leptos::logging::warn!("[sayagi] pesan sync tidak dikenal: {error}"),
+        Err(error) => leptos::logging::warn!("[selarust] pesan sync tidak dikenal: {error}"),
     }
 }

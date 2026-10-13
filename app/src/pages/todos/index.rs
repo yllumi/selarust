@@ -4,7 +4,7 @@
 //! diputar ulang ke server: satu jalur kode untuk online maupun offline.
 
 use leptos::prelude::*;
-use sayagi::{icon_svg, BottomSheet, MobileLayout, PullToRefresh};
+use selarust::{icon_svg, BottomSheet, MobileLayout, PullToRefresh};
 
 use crate::api::{list_todos, Todo, MAX_TITLE};
 use crate::components::{EmptyState, TodoRow};
@@ -106,14 +106,14 @@ pub fn Page() -> impl IntoView {
 
     let actions = view! {
         <button
-            class="sy-icon-btn"
+            class="sr-icon-btn"
             type="button"
             aria-label="Filter"
             on:click=move |_| filter_open.set(true)
             inner_html=icon_svg("filter")
         ></button>
         <button
-            class="sy-icon-btn"
+            class="sr-icon-btn"
             type="button"
             aria-label="Tambah todo"
             on:click=move |_| add_open.set(true)
@@ -126,8 +126,8 @@ pub fn Page() -> impl IntoView {
     // bisa memakai sumber yang sama (store) ketika Resource gagal diisi.
     let list_section = move |base: Vec<Todo>| {
         view! {
-            <section class="sy-section">
-                <h3 class="sy-section__title">
+            <section class="sr-section">
+                <h3 class="sr-section__title">
                     {move || format!("Daftar · {}", filter.get().label())}
                 </h3>
                 // Setelah hidrasi daftar mengikuti store: snapshot lokal + mutasi
@@ -148,18 +148,18 @@ pub fn Page() -> impl IntoView {
     view! {
         <MobileLayout title="Todo" actions=actions>
             <PullToRefresh label="Tarik untuk memuat ulang" on_refresh=on_refresh>
-                <Transition fallback=|| view! { <p class="sy-muted">"Memuat todo…"</p> }>
+                <Transition fallback=|| view! { <p class="sr-muted">"Memuat todo…"</p> }>
                     {move || match server.get() {
                         Some(Ok(items)) => list_section(items).into_any(),
                         // Offline: server tidak terjangkau, jadi tampilkan salinan
                         // lokal beserta antrean perubahan yang belum terkirim.
                         Some(Err(error)) => {
                             view! {
-                                <p class="sy-muted sy-small">
+                                <p class="sr-muted sr-small">
                                     "Server tidak terjangkau — menampilkan salinan lokal."
                                 </p>
                                 {list_section(Vec::new())}
-                                <p class="sy-error">{error.to_string()}</p>
+                                <p class="sr-error">{error.to_string()}</p>
                             }
                                 .into_any()
                         }
@@ -169,11 +169,11 @@ pub fn Page() -> impl IntoView {
             </PullToRefresh>
 
             <BottomSheet open=add_open title="Tambah todo">
-                <form class="sy-form" on:submit=submit>
-                    <label class="sy-field">
-                        <span class="sy-field__label">"Judul"</span>
+                <form class="sr-form" on:submit=submit>
+                    <label class="sr-field">
+                        <span class="sr-field__label">"Judul"</span>
                         <input
-                            class="sy-input"
+                            class="sr-input"
                             type="text"
                             placeholder="Mau dikerjakan apa?"
                             autocomplete="off"
@@ -182,28 +182,28 @@ pub fn Page() -> impl IntoView {
                             on:input=move |event| title.set(event_target_value(&event))
                         />
                     </label>
-                    <label class="sy-field">
-                        <span class="sy-field__label">"Catatan (opsional)"</span>
+                    <label class="sr-field">
+                        <span class="sr-field__label">"Catatan (opsional)"</span>
                         <textarea
-                            class="sy-input"
+                            class="sr-input"
                             rows="3"
                             placeholder="Detail singkat"
                             prop:value=move || notes.get()
                             on:input=move |event| notes.set(event_target_value(&event))
                         ></textarea>
                     </label>
-                    <button class="sy-btn-solid" type="submit">"Simpan todo"</button>
+                    <button class="sr-btn-solid" type="submit">"Simpan todo"</button>
                 </form>
             </BottomSheet>
 
             <BottomSheet open=filter_open title="Tampilkan">
-                <div class="sy-choices">
+                <div class="sr-choices">
                     {Filter::ALL
                         .into_iter()
                         .map(|option| {
                             view! {
                                 <button
-                                    class="sy-choice"
+                                    class="sr-choice"
                                     type="button"
                                     aria-pressed=move || (filter.get() == option).to_string()
                                     on:click=move |_| {
@@ -240,7 +240,7 @@ fn TodoList(
     }
 
     view! {
-        <ul class="sy-todos">
+        <ul class="sr-todos">
             {items
                 .into_iter()
                 .map(|todo| view! { <TodoRow todo on_toggle on_delete/> })

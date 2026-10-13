@@ -52,21 +52,21 @@ pub fn shell(options: LeptosOptions) -> impl IntoView {
 ///
 /// Dua hal didaftarkan sekali di sini dan dipakai semua halaman:
 ///
-/// * [`NavItems`](sayagi::NavItems) — entri navigasi bawah.
+/// * [`NavItems`](selarust::NavItems) — entri navigasi bawah.
 /// * [`TodoStore`] — daftar todo sisi klien (snapshot lokal + antrean offline),
 ///   yang juga disambungkan ke kanal realtime oleh [`crate::realtime`].
 /// Arah animasi transisi halaman dihitung `MobileLayout` dari kedalaman rute
-/// (naik/turun/selevel) — lihat `sayagi::note_route_depth`.
+/// (naik/turun/selevel) — lihat `selarust::note_route_depth`.
 ///
 /// Stylesheet-nya sudah ditulis `shell`, sehingga navigasi sisi klien tidak
 /// perlu memuatnya lagi.
 #[component]
 pub fn App() -> impl IntoView {
     provide_meta_context();
-    provide_context(sayagi::NavItems::new([
-        sayagi::NavItem::new("Beranda", "/", "home"),
-        sayagi::NavItem::new("Todo", "/todos", "check"),
-        sayagi::NavItem::new("Status", "/dashboard", "chart"),
+    provide_context(selarust::NavItems::new([
+        selarust::NavItem::new("Beranda", "/", "home"),
+        selarust::NavItem::new("Todo", "/todos", "check"),
+        selarust::NavItem::new("Status", "/dashboard", "chart"),
     ]));
 
     let store = TodoStore::new();

@@ -1,0 +1,40 @@
+# Konfigurasi metaframework Selarust.
+# Setiap file .rs di `routes.dir` menjadi satu rute, dan seluruh berkas PWA
+# (manifest, service worker, ikon) digenerate dari berkas ini saat build.
+
+[app]
+name = "{{project_title}}"
+short_name = "{{project_name}}"
+description = "Aplikasi mobile-first PWA yang dibangun dengan metaframework Selarust."
+lang = "id"
+theme_color = "#0f172a"
+background_color = "#0f172a"
+start_url = "/"
+scope = "/"
+display = "standalone"
+orientation = "portrait"
+site_addr = "{{site_addr}}"
+assets_dir = "public"
+
+[routes]
+# index.rs -> "/"      hello.rs -> "/hello"      [id].rs -> "/:id"
+dir = "src/pages"
+
+[pwa]
+service_worker = true
+offline_fallback = "/offline"
+icons = [192, 512]
+# Entri precache diberi revisi versi build oleh selarust-build (berbasis isi
+# sumber aplikasi), jadi berkas yang berubah diunduh ulang saat worker baru dipasang.
+precache = ["/", "/offline", "/manifest.webmanifest"]
+# `/pkg/` network-first supaya wasm hasil build baru tidak pernah bercampur
+# dengan HTML lama; fallback cache-nya tetap melayani mode offline.
+network_first = ["/api/", "/pkg/"]
+stale_while_revalidate = ["/icons/", "/assets/"]
+
+[database]
+# Nilai di bawah dipanggang menjadi konstanta saat build (`config::DATABASE_URL`).
+# Tambahkan sqlx + modul db saat aplikasi mulai menyimpan data.
+url = "sqlite://selarust.db"
+max_connections = 5
+seed = true

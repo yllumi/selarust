@@ -1,0 +1,12 @@
+/target
+**/*.rs.bk
+*.db
+*.db-shm
+*.db-wal
+
+# Hasil generate Selarust (aman dihapus, dibuat ulang saat build).
+/public/manifest.webmanifest
+/public/sw.js
+/public/icons/
+# Runtime Workbox (disalin dari vendor saat build).
+/public/workbox/

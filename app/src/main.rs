@@ -34,7 +34,7 @@ async fn main() {
     let addr = leptos_options.site_addr;
 
     let database_url = db::resolve_url(
-        &std::env::var("SAYAGI_DATABASE_URL")
+        &std::env::var("SELARUST_DATABASE_URL")
             .unwrap_or_else(|_| config::DATABASE_URL.to_string()),
     );
     let pool = db::connect(
@@ -46,7 +46,7 @@ async fn main() {
     .expect("membuka SQLite tertanam");
     log!("database siap: {database_url}");
 
-    // Rute Leptos diturunkan dari <Routes> yang digenerate `sayagi-build`.
+    // Rute Leptos diturunkan dari <Routes> yang digenerate `selarust-build`.
     let routes = generate_route_list(App);
 
     let state = AppState {

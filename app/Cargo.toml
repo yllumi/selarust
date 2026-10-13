@@ -1,6 +1,6 @@
 [package]
 name = "mobile-pwa"
-description = "Example mobile-first PWA generated with the Sayagi Rust metaframework."
+description = "Example mobile-first PWA generated with the Selarust metaframework."
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -11,7 +11,7 @@ repository.workspace = true
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-sayagi = { workspace = true }
+selarust = { workspace = true }
 leptos = { workspace = true }
 leptos_router = { workspace = true }
 leptos_meta = { workspace = true }
@@ -36,7 +36,7 @@ wasm-bindgen = { workspace = true, optional = true }
 console_error_panic_hook = { version = "0.1", optional = true }
 
 [build-dependencies]
-sayagi-build = { workspace = true }
+selarust-build = { workspace = true }
 
 [features]
 # Kept empty: `cargo build` alone is only used for tooling/`cargo check`.
@@ -52,14 +52,14 @@ ssr = [
     "leptos/ssr",
     "leptos_meta/ssr",
     "leptos_router/ssr",
-    "sayagi/ssr",
+    "selarust/ssr",
 ]
 
 # The Wasm client that hydrates the server-rendered HTML.
 hydrate = [
     "dep:wasm-bindgen",
     "dep:console_error_panic_hook",
-    "sayagi/hydrate",
+    "selarust/hydrate",
 ]
 
 [package.metadata.leptos]

@@ -1,13 +1,13 @@
 //! `/todos/:id` — detail, ubah, dan hapus satu todo.
 //!
 //! Nama berkas `[id].rs` dipetakan ke segmen dinamis `:id`; halaman membaca
-//! parameternya lewat `sayagi::param`. Bila server tidak terjangkau, baris
+//! parameternya lewat `selarust::param`. Bila server tidak terjangkau, baris
 //! diambil dari snapshot lokal supaya halaman tetap bisa dibuka offline.
 
 use leptos::prelude::*;
 use leptos_router::hooks::use_navigate;
 use leptos_router::NavigateOptions;
-use sayagi::{param, LinkButton, MobileLayout};
+use selarust::{param, LinkButton, MobileLayout};
 
 use crate::api::{get_todo, Todo, MAX_TITLE};
 use crate::components::EmptyState;
@@ -61,7 +61,7 @@ pub fn Page() -> impl IntoView {
 
     view! {
         <MobileLayout title="Detail todo" show_back=true>
-            <Transition fallback=|| view! { <p class="sy-muted">"Memuat detail…"</p> }>
+            <Transition fallback=|| view! { <p class="sr-muted">"Memuat detail…"</p> }>
                 {move || {
                     loaded
                         .get()
@@ -109,7 +109,7 @@ pub fn Page() -> impl IntoView {
                                 }
                                 None => {
                                     view! {
-                                        <p class="sy-error">
+                                        <p class="sr-error">
                                             "Tidak bisa memuat data dan belum ada salinan offline."
                                         </p>
                                     }
@@ -183,52 +183,52 @@ fn Detail(
     };
 
     view! {
-        <section class="sy-page">
-            <p class="sy-overline">{format!("todo #{id}")}</p>
+        <section class="sr-page">
+            <p class="sr-overline">{format!("todo #{id}")}</p>
 
-            <form class="sy-form" on:submit=save>
-                <label class="sy-field">
-                    <span class="sy-field__label">"Judul"</span>
+            <form class="sr-form" on:submit=save>
+                <label class="sr-field">
+                    <span class="sr-field__label">"Judul"</span>
                     <input
-                        class="sy-input"
+                        class="sr-input"
                         type="text"
                         maxlength=MAX_TITLE
                         prop:value=move || title.get()
                         on:input=move |event| title.set(event_target_value(&event))
                     />
                 </label>
-                <label class="sy-field">
-                    <span class="sy-field__label">"Catatan"</span>
+                <label class="sr-field">
+                    <span class="sr-field__label">"Catatan"</span>
                     <textarea
-                        class="sy-input"
+                        class="sr-input"
                         rows="4"
                         prop:value=move || notes.get()
                         on:input=move |event| notes.set(event_target_value(&event))
                     ></textarea>
                 </label>
-                <button class="sy-btn-solid" type="submit">"Simpan"</button>
+                <button class="sr-btn-solid" type="submit">"Simpan"</button>
             </form>
 
-            <dl class="sy-detail">
-                <div class="sy-detail__row">
+            <dl class="sr-detail">
+                <div class="sr-detail__row">
                     <dt>"Status"</dt>
                     <dd>
-                        <span class=if completed { "sy-badge sy-badge--ok" } else { "sy-badge" }>
+                        <span class=if completed { "sr-badge sr-badge--ok" } else { "sr-badge" }>
                             {status}
                         </span>
                     </dd>
                 </div>
-                <div class="sy-detail__row">
+                <div class="sr-detail__row">
                     <dt>"Dibuat"</dt>
                     <dd>{item.created_at.clone()}</dd>
                 </div>
             </dl>
 
-            <div class="sy-actions">
-                <button class="sy-btn-solid sy-btn-solid--ghost" type="button" on:click=toggle>
+            <div class="sr-actions">
+                <button class="sr-btn-solid sr-btn-solid--ghost" type="button" on:click=toggle>
                     {if completed { "Tandai terbuka" } else { "Tandai selesai" }}
                 </button>
-                <button class="sy-btn-solid sy-btn-solid--danger" type="button" on:click=remove>
+                <button class="sr-btn-solid sr-btn-solid--danger" type="button" on:click=remove>
                     "Hapus todo"
                 </button>
             </div>

@@ -1,19 +1,19 @@
 [workspace]
 resolver = "2"
-members = ["crates/sayagi-build", "crates/sayagi", "crates/sayagi-cli", "app"]
-# Templates are inert source files that `sayagi new` copies; keep Cargo out of them.
-exclude = ["crates/sayagi-cli/templates"]
+members = ["crates/selarust-build", "crates/selarust", "crates/selarust-cli", "app"]
+# Templates are inert source files that `selarust new` copies; keep Cargo out of them.
+exclude = ["crates/selarust-cli/templates"]
 
 [workspace.package]
 version = "0.1.0"
 edition = "2021"
 license = "MIT"
 rust-version = "1.80"
-repository = "https://example.com/sayagi-rust"
+repository = "https://example.com/selarust"
 
 [workspace.dependencies]
-sayagi-build = { path = "crates/sayagi-build", version = "0.1.0" }
-sayagi = { path = "crates/sayagi", version = "0.1.0" }
+selarust-build = { path = "crates/selarust-build", version = "0.1.0" }
+selarust = { path = "crates/selarust", version = "0.1.0" }
 
 leptos = "0.8"
 leptos_router = "0.8"

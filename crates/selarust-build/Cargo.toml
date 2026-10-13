@@ -1,0 +1,14 @@
+[package]
+name = "selarust-build"
+description = "Build-time code generation for the Selarust PWA metaframework: file-based routing, PWA manifest, service worker and icons."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+
+[dependencies]
+flate2 = "1"
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+toml = "0.8"

@@ -1,12 +1,12 @@
 //! `/offline` — halaman cadangan yang di-precache service worker.
 //!
-//! Rute ini disebut di `Sayagi.toml` sebagai `offline_fallback`, sehingga
+//! Rute ini disebut di `Selarust.toml` sebagai `offline_fallback`, sehingga
 //! navigasi yang gagal saat perangkat tanpa jaringan tetap menampilkan layar
 //! yang ramah. Karena store lokal sudah memuat snapshot IndexedDB, halaman ini
 //! juga bisa memperlihatkan data terakhir yang diketahui perangkat.
 
 use leptos::prelude::*;
-use sayagi::MobileLayout;
+use selarust::MobileLayout;
 
 use crate::store::TodoStore;
 
@@ -33,21 +33,21 @@ pub fn Page() -> impl IntoView {
 
     view! {
         <MobileLayout title="Offline">
-            <section class="sy-page sy-empty">
-                <p class="sy-empty__code">"offline"</p>
-                <h2 class="sy-empty__title">"Koneksi terputus"</h2>
-                <p class="sy-muted">
+            <section class="sr-page sr-empty">
+                <p class="sr-empty__code">"offline"</p>
+                <h2 class="sr-empty__title">"Koneksi terputus"</h2>
+                <p class="sr-muted">
                     "Halaman ini disajikan dari cache service worker. Sambungkan kembali \
                      perangkat untuk memuat data terbaru."
                 </p>
-                <button class="sy-btn-solid" type="button" on:click=reload>
+                <button class="sr-btn-solid" type="button" on:click=reload>
                     "Coba lagi"
                 </button>
             </section>
 
-            <section class="sy-section">
-                <h3 class="sy-section__title">"Salinan lokal"</h3>
-                <p class="sy-muted sy-small">
+            <section class="sr-section">
+                <h3 class="sr-section__title">"Salinan lokal"</h3>
+                <p class="sr-muted sr-small">
                     {move || {
                         let waiting = pending.get();
                         if waiting == 0 {
@@ -61,21 +61,21 @@ pub fn Page() -> impl IntoView {
                     let items = items.get();
                     if items.is_empty() {
                         view! {
-                            <p class="sy-muted sy-small">
+                            <p class="sr-muted sr-small">
                                 "Belum ada salinan data di perangkat ini."
                             </p>
                         }
                             .into_any()
                     } else {
                         view! {
-                            <ul class="sy-todos">
+                            <ul class="sr-todos">
                                 {items
                                     .into_iter()
                                     .map(|todo| {
                                         view! {
-                                            <li class="sy-todo" class:sy-todo--done=todo.completed>
-                                                <p class="sy-todo__title">{todo.title.clone()}</p>
-                                                <span class="sy-todo__state">
+                                            <li class="sr-todo" class:sr-todo--done=todo.completed>
+                                                <p class="sr-todo__title">{todo.title.clone()}</p>
+                                                <span class="sr-todo__state">
                                                     {if todo.completed { "selesai" } else { "terbuka" }}
                                                 </span>
                                             </li>

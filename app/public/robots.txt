@@ -1,6 +1,6 @@
 # Aset statis untuk crawler; berkas di folder ini ikut disalin ke site root
 # oleh cargo-leptos. Manifest, sw.js, dan ikon TIDAK ditulis tangan — ketiganya
-# digenerate dari Sayagi.toml saat build.
+# digenerate dari Selarust.toml saat build.
 User-agent: *
 Allow: /
 Disallow: /api/

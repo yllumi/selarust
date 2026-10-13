@@ -1,12 +1,12 @@
 //! Komponen khusus aplikasi.
 //!
 //! Primitif yang disediakan framework (`MobileLayout`, `HeaderBar`, `BottomNav`,
-//! `PullToRefresh`) tinggal di crate `sayagi`; folder ini untuk komponen milik
+//! `PullToRefresh`) tinggal di crate `selarust`; folder ini untuk komponen milik
 //! aplikasi sendiri.
 
 use leptos::prelude::*;
 use leptos_router::components::A;
-use sayagi::{ConnectionState, SyncClient};
+use selarust::{ConnectionState, SyncClient};
 
 use crate::api::Todo;
 use crate::store::TodoStore;
@@ -38,21 +38,21 @@ pub fn TodoRow(
     };
 
     view! {
-        <li class="sy-todo" class:sy-todo--done=done>
+        <li class="sr-todo" class:sr-todo--done=done>
             <button
                 type="button"
-                class="sy-todo__check"
+                class="sr-todo__check"
                 role="checkbox"
                 aria-checked=move || if done.get() { "true" } else { "false" }
                 aria-label="Tandai selesai"
                 on:click=toggle
             >
-                <span class="sy-todo__mark" inner_html=sayagi::icon_svg("check")></span>
+                <span class="sr-todo__mark" inner_html=selarust::icon_svg("check")></span>
             </button>
 
             <A href=href>
-                <p class="sy-todo__title">{title}</p>
-                <p class="sy-todo__meta">
+                <p class="sr-todo__title">{title}</p>
+                <p class="sr-todo__meta">
                     {if notes.is_empty() {
                         "tidak ada catatan".to_string()
                     } else {
@@ -61,13 +61,13 @@ pub fn TodoRow(
                 </p>
             </A>
 
-            <span class="sy-todo__state">
+            <span class="sr-todo__state">
                 {move || if done.get() { "selesai" } else { "terbuka" }}
             </span>
 
             <button
                 type="button"
-                class="sy-todo__delete"
+                class="sr-todo__delete"
                 aria-label="Hapus todo"
                 on:click=move |_| on_delete.run(id)
             >
@@ -110,14 +110,14 @@ pub fn SyncStrip() -> impl IntoView {
     };
 
     view! {
-        <div class="sy-sync" class:is-visible=visible role="status" aria-live="polite">
-            <span class="sy-sync__dot" class:is-on=online aria-hidden="true"></span>
-            <span class="sy-sync__label">{move || state.get().label()}</span>
+        <div class="sr-sync" class:is-visible=visible role="status" aria-live="polite">
+            <span class="sr-sync__dot" class:is-on=online aria-hidden="true"></span>
+            <span class="sr-sync__label">{move || state.get().label()}</span>
             {move || {
                 (pending.get() > 0)
                     .then(|| {
                         view! {
-                            <span class="sy-sync__count">
+                            <span class="sr-sync__count">
                                 {format!("{} perubahan menunggu", pending.get())}
                             </span>
                         }
@@ -127,10 +127,10 @@ pub fn SyncStrip() -> impl IntoView {
                 store
                     .error()
                     .get()
-                    .map(|error| view! { <span class="sy-sync__error">{error}</span> })
+                    .map(|error| view! { <span class="sr-sync__error">{error}</span> })
             }}
             <button
-                class="sy-sync__action"
+                class="sr-sync__action"
                 type="button"
                 disabled=move || store.syncing().get() || pending.get() == 0
                 on:click=sync_now
@@ -155,15 +155,15 @@ pub fn StatTile(
     tone: Option<String>,
 ) -> impl IntoView {
     let class = match tone.as_deref() {
-        Some("ok") => "sy-stat sy-stat--ok",
-        Some("off") => "sy-stat sy-stat--off",
-        _ => "sy-stat",
+        Some("ok") => "sr-stat sr-stat--ok",
+        Some("off") => "sr-stat sr-stat--off",
+        _ => "sr-stat",
     };
 
     view! {
         <div class=class>
-            <p class="sy-stat__value">{value}</p>
-            <p class="sy-stat__label">{label}</p>
+            <p class="sr-stat__value">{value}</p>
+            <p class="sr-stat__label">{label}</p>
         </div>
     }
 }
@@ -179,9 +179,9 @@ pub fn EmptyState(
     hint: Option<String>,
 ) -> impl IntoView {
     view! {
-        <section class="sy-page sy-empty">
-            <h2 class="sy-empty__title">{title}</h2>
-            {hint.map(|hint| view! { <p class="sy-muted">{hint}</p> })}
+        <section class="sr-page sr-empty">
+            <h2 class="sr-empty__title">{title}</h2>
+            {hint.map(|hint| view! { <p class="sr-muted">{hint}</p> })}
         </section>
     }
 }

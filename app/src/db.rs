@@ -20,7 +20,7 @@ pub fn pool() -> Result<Pool, leptos::prelude::ServerFnError> {
         .ok_or_else(|| leptos::prelude::ServerFnError::new("pool database belum disediakan"))
 }
 
-/// Mengubah `sqlite://sayagi.db` yang relatif menjadi absolut, berbasis direktori
+/// Mengubah `sqlite://selarust.db` yang relatif menjadi absolut, berbasis direktori
 /// biner dijalankan.
 ///
 /// Tanpa ini, berkas database muncul di mana pun proses diluncurkan — misalnya di
@@ -220,13 +220,13 @@ mod tests {
 
     #[test]
     fn relative_sqlite_urls_are_absolutised() {
-        let resolved = resolve_url("sqlite://sayagi.db");
+        let resolved = resolve_url("sqlite://selarust.db");
         assert!(
             resolved.starts_with("sqlite:///"),
             "expected an absolute path, got {resolved}"
         );
-        assert!(resolved.ends_with("/sayagi.db"), "got {resolved}");
-        assert_ne!(resolved, "sqlite://sayagi.db");
+        assert!(resolved.ends_with("/selarust.db"), "got {resolved}");
+        assert_ne!(resolved, "sqlite://selarust.db");
     }
 
     #[test]
