@@ -18,6 +18,19 @@
   --sy-nav-height: 62px;
   --sy-safe-top: env(safe-area-inset-top, 0px);
   --sy-safe-bottom: env(safe-area-inset-bottom, 0px);
+
+  /* Token gerak Material 3 untuk perpindahan halaman.
+     Angka geometrinya mengikuti implementasi referensi "fade forwards"
+     (default Android 14+, Flutter `FadeForwardsPageTransitionsBuilder`):
+     durasi 450 ms, geser 25% lebar halaman, halaman masuk selesai fade pada 75%
+     durasi dan halaman keluar pada 25%. Easing memakai token M3 untuk elemen
+     masuk/keluar: emphasized decelerate / emphasized accelerate. Perpindahan
+     selevel memakai pola "fade through" (300 ms, fade keluar 30% pertama). */
+  --sy-motion-duration: 450ms;
+  --sy-motion-duration-fade: 300ms;
+  --sy-motion-travel: 25%;
+  --sy-motion-ease-enter: cubic-bezier(0.05, 0.7, 0.1, 1);
+  --sy-motion-ease-exit: cubic-bezier(0.3, 0, 0.8, 0.15);
 }
 
 @media (prefers-color-scheme: light) {
@@ -45,6 +58,18 @@ body {
   -webkit-font-smoothing: antialiased;
   -webkit-tap-highlight-color: transparent;
   overscroll-behavior-y: contain;
+  /* Scrollbar klasik (desktop) mengubah lebar viewport saat muncul/hilang, dan
+     Chromium membatalkan view transition di tengah jalan bila itu terjadi.
+     Ruang untuk scrollbar karena itu selalu disediakan, dan geseran horizontal
+     (swipe-back) dipotong dengan `clip` supaya tidak memunculkan scrollbar —
+     `clip` tidak menjadikan body scroll container, jadi header sticky tetap
+     berfungsi. */
+  scrollbar-gutter: stable;
+  overflow-x: clip;
+  /* Chrome Android memakai swipe dari tepi kiri untuk navigasi mundur bawaan;
+     itu bertabrakan dengan gestur swipe-back milik shell (satu swipe memicu dua
+     kali back). `none` mematikan gestur bawaan pada sumbu horizontal saja. */
+  overscroll-behavior-x: none;
 }
 
 a {
@@ -368,42 +393,6 @@ html[data-sayagi-online="false"] .sy-offline-banner {
   border-radius: 999px;
 }
 
-.sy-cards {
-  display: grid;
-  gap: 0.6rem;
-}
-
-.sy-card {
-  background: var(--sy-surface);
-  border: 1px solid var(--sy-border);
-  border-radius: var(--sy-radius-sm);
-  overflow: hidden;
-}
-
-.sy-card > a {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  padding: 0.85rem 0.95rem;
-}
-
-.sy-card > a:active {
-  background: var(--sy-surface-soft);
-}
-
-.sy-card__title {
-  margin: 0;
-  font-size: 0.95rem;
-  font-weight: 600;
-}
-
-.sy-card__meta {
-  margin: 0.15rem 0 0;
-  font-size: 0.74rem;
-  color: var(--sy-muted);
-}
-
 .sy-badge {
   flex: none;
   padding: 0.25rem 0.6rem;
@@ -525,4 +514,584 @@ html[data-sayagi-online="false"] .sy-offline-banner {
   background: color-mix(in srgb, var(--sy-off) 12%, transparent);
   border: 1px solid color-mix(in srgb, var(--sy-off) 35%, transparent);
   border-radius: var(--sy-radius-sm);
+}
+
+/* Form: kolom tambah todo dan form ubah di halaman detail. */
+.sy-form {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.sy-form > form {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.sy-field {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.sy-field__label {
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--sy-muted);
+}
+
+.sy-input {
+  flex: 1;
+  width: 100%;
+  min-width: 0;
+  padding: 0.7rem 0.85rem;
+  font: inherit;
+  font-size: 0.9rem;
+  color: var(--sy-text);
+  background: var(--sy-surface);
+  border: 1px solid var(--sy-border);
+  border-radius: var(--sy-radius-sm);
+  resize: vertical;
+}
+
+.sy-input:focus-visible,
+.sy-btn-solid:focus-visible,
+.sy-todo__check:focus-visible,
+.sy-todo__delete:focus-visible {
+  outline: 2px solid var(--sy-accent);
+  outline-offset: 2px;
+}
+
+.sy-input::placeholder {
+  color: var(--sy-muted);
+}
+
+.sy-btn-solid {
+  flex: none;
+  padding: 0.7rem 1.1rem;
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #04122b;
+  background: var(--sy-accent);
+  border: 1px solid transparent;
+  border-radius: 999px;
+}
+
+.sy-btn-solid[disabled] {
+  opacity: 0.6;
+}
+
+.sy-btn-solid--ghost {
+  color: var(--sy-text);
+  background: transparent;
+  border-color: var(--sy-border);
+}
+
+.sy-btn-solid--danger {
+  color: var(--sy-off);
+  background: transparent;
+  border-color: color-mix(in srgb, var(--sy-off) 45%, transparent);
+}
+
+.sy-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0 0 1.25rem;
+}
+
+/* Daftar todo. */
+.sy-todos {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  /* `minmax(0, 1fr)`: kolom implisit default-nya max-content, sehingga satu
+     judul panjang saja sudah melebarkan halaman secara horizontal. */
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.55rem;
+}
+
+.sy-todo {
+  display: grid;
+  /* Kolom tengah wajib minmax(0, 1fr) + min-width: 0 pada <a>, kalau tidak
+     min-content dari judul/catatan menahan penyusutan dan baris jadi lebih lebar
+     dari layar. */
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.65rem 0.7rem;
+  background: var(--sy-surface);
+  border: 1px solid var(--sy-border);
+  border-radius: var(--sy-radius-sm);
+}
+
+.sy-todo > a {
+  min-width: 0;
+}
+
+.sy-todo__check {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  color: transparent;
+  background: var(--sy-surface-soft);
+  border: 1px solid var(--sy-border);
+  border-radius: 50%;
+}
+
+.sy-todo--done .sy-todo__check {
+  color: #04122b;
+  background: var(--sy-ok);
+  border-color: transparent;
+}
+
+.sy-todo__mark svg {
+  width: 16px;
+  height: 16px;
+  display: block;
+  fill: currentColor;
+}
+
+.sy-todo__title {
+  margin: 0;
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--sy-text);
+  overflow-wrap: anywhere;
+}
+
+.sy-todo--done .sy-todo__title {
+  color: var(--sy-muted);
+  text-decoration: line-through;
+}
+
+.sy-todo__meta {
+  margin: 0.15rem 0 0;
+  font-size: 0.74rem;
+  color: var(--sy-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sy-todo__state {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--sy-muted);
+}
+
+.sy-todo__delete {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  font-size: 1.05rem;
+  line-height: 1;
+  color: var(--sy-off);
+  background: transparent;
+  border: 1px solid var(--sy-border);
+  border-radius: 50%;
+}
+
+.sy-todo__delete:active {
+  background: color-mix(in srgb, var(--sy-off) 15%, transparent);
+}
+
+/* ---------- gestur: swipe-back dari tepi kiri ---------- */
+
+.sy-app {
+  transition: transform 0.24s ease-out, box-shadow 0.24s ease-out;
+}
+
+.sy-app.is-swiping-back {
+  transition: none;
+  box-shadow: -14px 0 32px rgba(3, 7, 18, 0.45);
+}
+
+/* ---------- bottom sheet ---------- */
+
+.sy-sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  visibility: hidden;
+}
+
+.sy-sheet.is-open {
+  visibility: visible;
+}
+
+.sy-sheet__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(3, 7, 18, 0.55);
+  opacity: 0;
+  transition: opacity 0.22s ease;
+}
+
+.sy-sheet.is-open .sy-sheet__backdrop {
+  opacity: 1;
+}
+
+.sy-sheet__panel {
+  position: absolute;
+  inset: auto 0 0;
+  display: flex;
+  flex-direction: column;
+  max-height: 86vh;
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 0.4rem 1rem calc(var(--sy-safe-bottom) + 1.25rem);
+  background: var(--sy-surface);
+  border-top: 1px solid var(--sy-border);
+  border-radius: 20px 20px 0 0;
+  box-shadow: 0 -14px 34px rgba(3, 7, 18, 0.4);
+  transform: translateY(100%);
+  transition: transform 0.26s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+.sy-sheet.is-open .sy-sheet__panel {
+  transform: translateY(0);
+}
+
+.sy-sheet__panel.is-dragging {
+  transition: none;
+}
+
+.sy-sheet__panel:focus-visible {
+  outline: none;
+}
+
+.sy-sheet__handle {
+  width: 44px;
+  height: 4px;
+  margin: 0.35rem auto 0.7rem;
+  border-radius: 999px;
+  background: var(--sy-border);
+  flex: none;
+}
+
+.sy-sheet__title {
+  margin: 0 0 0.6rem;
+  font-size: 1rem;
+  flex: none;
+}
+
+.sy-sheet__body {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* Tombol ikon di header. */
+.sy-icon-btn {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  color: var(--sy-text);
+  background: var(--sy-surface-soft);
+  border: 1px solid var(--sy-border);
+  border-radius: 50%;
+}
+
+.sy-icon-btn:active {
+  background: color-mix(in srgb, var(--sy-accent) 18%, transparent);
+}
+
+.sy-icon-btn svg {
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
+}
+
+/* Baris pilihan di dalam sheet (mis. filter). */
+.sy-choice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.8rem 0.9rem;
+  font: inherit;
+  font-size: 0.9rem;
+  text-align: left;
+  color: var(--sy-text);
+  background: var(--sy-surface-soft);
+  border: 1px solid var(--sy-border);
+  border-radius: var(--sy-radius-sm);
+}
+
+.sy-choice[aria-pressed="true"] {
+  color: var(--sy-accent);
+  border-color: color-mix(in srgb, var(--sy-accent) 45%, transparent);
+}
+
+.sy-choices {
+  display: grid;
+  gap: 0.5rem;
+}
+
+/* ---------- transisi halaman (View Transitions API) ---------- */
+
+/* Arah animasi ditentukan kedalaman rute, bukan arah riwayat browser:
+   - masuk ke anak halaman (lebih dalam) → geser ke kiri
+   - naik ke halaman induk (lebih dangkal) → geser ke kanan
+   - pindah ke halaman selevel → fade
+   Kelas `sy-nav-*` dilaporkan `MobileLayout` (lewat `sayagi::note_route_depth`)
+   saat halaman baru dibangun, yaitu di dalam update callback view transition —
+   jadi sudah terpasang sebelum browser menyusun lapisan animasinya. */
+
+/* Chrome shell tidak ikut animasi halaman. Header, banner offline, dan navigasi
+   bawah adalah saudara `.sy-main`, jadi tanpa nama transisi sendiri ketiganya
+   jatuh ke snapshot root. Lapisan view transition disusun menurut urutan
+   dokumen, bukan `z-index`, sehingga isi halaman yang bergeser tergambar di atas
+   nav yang `position: fixed` — itulah kedipan yang terlihat setiap navigasi.
+   Dengan nama sendiri ketiganya menjadi lapisan terpisah yang dibiarkan diam:
+   snapshot lama disembunyikan, snapshot baru tampil seketika, tanpa fade. */
+.sy-header {
+  view-transition-name: sy-chrome-header;
+}
+
+.sy-offline-banner {
+  view-transition-name: sy-chrome-banner;
+}
+
+.sy-nav {
+  view-transition-name: sy-chrome-nav;
+}
+
+html::view-transition-old(sy-chrome-header),
+html::view-transition-old(sy-chrome-banner),
+html::view-transition-old(sy-chrome-nav) {
+  animation: none;
+  mix-blend-mode: normal;
+  opacity: 0;
+}
+
+html::view-transition-new(sy-chrome-header),
+html::view-transition-new(sy-chrome-banner),
+html::view-transition-new(sy-chrome-nav) {
+  animation: none;
+  mix-blend-mode: normal;
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* Hanya isi <main> yang dianimasikan; chrome shell sudah punya lapisan
+     diamnya sendiri pada blok `sy-chrome-*` di atas. */
+  :root {
+    view-transition-name: none;
+  }
+
+  .sy-main {
+    view-transition-name: sy-page;
+    /* Lapisan view transition mewarisi latar ini, sehingga halaman yang
+       di-fade masuk benar-benar menutup halaman yang keluar. */
+    background: var(--sy-bg);
+  }
+
+  /* Bawaan: bila kedalaman rute tidak dilaporkan (halaman di luar MobileLayout)
+     cukup fade. Aturan berkelas di bawah menang karena urutannya lebih akhir. */
+  html.router-outlet-0::view-transition-old(sy-page) {
+    animation: sy-page-fade-out calc(var(--sy-motion-duration-fade) * 0.3) linear both;
+  }
+
+  html.router-outlet-0::view-transition-new(sy-page) {
+    animation:
+      sy-page-fade-in calc(var(--sy-motion-duration-fade) * 0.7) linear
+      calc(var(--sy-motion-duration-fade) * 0.3) both;
+  }
+
+  /* Masuk ke anak halaman: halaman baru geser dari kanan sambil fade masuk,
+     halaman lama geser ke kiri sambil fade keluar lebih dulu. */
+  html.sy-nav-child::view-transition-new(sy-page) {
+    animation:
+      sy-page-in-right var(--sy-motion-duration) var(--sy-motion-ease-enter) both,
+      sy-page-fade-in calc(var(--sy-motion-duration) * 0.75) linear both;
+  }
+
+  html.sy-nav-child::view-transition-old(sy-page) {
+    animation:
+      sy-page-out-left var(--sy-motion-duration) var(--sy-motion-ease-exit) both,
+      sy-page-fade-out calc(var(--sy-motion-duration) * 0.25) linear both;
+  }
+
+  /* Naik ke halaman induk: kebalikannya. */
+  html.sy-nav-parent::view-transition-new(sy-page) {
+    animation:
+      sy-page-in-left var(--sy-motion-duration) var(--sy-motion-ease-enter) both,
+      sy-page-fade-in calc(var(--sy-motion-duration) * 0.75) linear both;
+  }
+
+  html.sy-nav-parent::view-transition-old(sy-page) {
+    animation:
+      sy-page-out-right var(--sy-motion-duration) var(--sy-motion-ease-exit) both,
+      sy-page-fade-out calc(var(--sy-motion-duration) * 0.25) linear both;
+  }
+
+  /* Halaman selevel: "fade through" tanpa arah. */
+  html.sy-nav-level::view-transition-old(sy-page) {
+    animation: sy-page-fade-out calc(var(--sy-motion-duration-fade) * 0.3) linear both;
+  }
+
+  html.sy-nav-level::view-transition-new(sy-page) {
+    animation:
+      sy-page-fade-in calc(var(--sy-motion-duration-fade) * 0.7) linear
+      calc(var(--sy-motion-duration-fade) * 0.3) both;
+  }
+}
+
+@keyframes sy-page-out-left {
+  to {
+    transform: translateX(calc(var(--sy-motion-travel) * -1));
+  }
+}
+
+@keyframes sy-page-in-right {
+  from {
+    transform: translateX(var(--sy-motion-travel));
+  }
+}
+
+@keyframes sy-page-out-right {
+  to {
+    transform: translateX(var(--sy-motion-travel));
+  }
+}
+
+@keyframes sy-page-in-left {
+  from {
+    transform: translateX(calc(var(--sy-motion-travel) * -1));
+  }
+}
+
+@keyframes sy-page-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes sy-page-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+/* Fallback untuk browser tanpa View Transitions API. Halaman lama sudah dilepas
+   router sehingga tidak bisa dianimasikan, tetapi halaman baru tetap masuk
+   sesuai arah kelas `sy-nav-*` — jadi arahnya sama dengan jalur View
+   Transitions, bukan fade untuk semua navigasi. Kelas `sy-no-vt` dipasang
+   `sayagi::note_route_depth` saat API-nya tidak ada, jadi tidak bergantung pada
+   tebakan `@supports`. */
+@media (prefers-reduced-motion: no-preference) {
+  html.sy-no-vt .sy-main {
+    /* Tanpa kelas arah (mis. halaman di luar MobileLayout) tetap fade. */
+    animation: sy-page-fade-in var(--sy-motion-duration-fade) linear both;
+  }
+
+  html.sy-no-vt.sy-nav-child .sy-main {
+    animation:
+      sy-page-in-right var(--sy-motion-duration) var(--sy-motion-ease-enter) both,
+      sy-page-fade-in calc(var(--sy-motion-duration) * 0.75) linear both;
+  }
+
+  html.sy-no-vt.sy-nav-parent .sy-main {
+    animation:
+      sy-page-in-left var(--sy-motion-duration) var(--sy-motion-ease-enter) both,
+      sy-page-fade-in calc(var(--sy-motion-duration) * 0.75) linear both;
+  }
+
+  html.sy-no-vt.sy-nav-level .sy-main {
+    animation: sy-page-fade-in var(--sy-motion-duration-fade) linear both;
+  }
+}
+/* Strip status sinkronisasi: muncul saat offline atau ada perubahan tertunda. */
+.sy-sync {
+  position: fixed;
+  left: 12px;
+  right: 12px;
+  bottom: calc(var(--sy-nav-height) + var(--sy-safe-bottom) + 10px);
+  z-index: 30;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--sy-border);
+  border-radius: var(--sy-radius-sm);
+  background: color-mix(in srgb, var(--sy-surface) 92%, transparent);
+  box-shadow: 0 10px 30px rgb(3 8 20 / 35%);
+  font-size: 0.78rem;
+  color: var(--sy-muted);
+  backdrop-filter: blur(10px);
+  opacity: 0;
+  transform: translateY(12px);
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s;
+}
+
+.sy-sync.is-visible {
+  opacity: 1;
+  transform: none;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.sy-sync__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--sy-off);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--sy-off) 24%, transparent);
+}
+
+.sy-sync__dot.is-on {
+  background: var(--sy-ok);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--sy-ok) 24%, transparent);
+}
+
+.sy-sync__label {
+  font-weight: 600;
+  color: var(--sy-text);
+}
+
+.sy-sync__count {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--sy-surface-soft);
+  color: var(--sy-text);
+}
+
+.sy-sync__error {
+  flex: 1 1 100%;
+  color: var(--sy-off);
+}
+
+.sy-sync__action {
+  margin-left: auto;
+  padding: 6px 12px;
+  border: 1px solid var(--sy-border);
+  border-radius: 999px;
+  background: var(--sy-accent);
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.sy-sync__action:disabled {
+  background: var(--sy-surface-soft);
+  color: var(--sy-muted);
+  cursor: default;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sy-sync {
+    transition: none;
+  }
 }

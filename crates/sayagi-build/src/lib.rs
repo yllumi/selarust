@@ -132,14 +132,51 @@ pub fn generate(manifest_dir: impl AsRef<Path>, out_dir: impl AsRef<Path>) -> Re
     let assets_dir = config.assets_dir(manifest_dir);
     std::fs::create_dir_all(&assets_dir)?;
     report.files.extend(pwa::write_manifest(&assets_dir, &config)?);
-    report.files.extend(pwa::write_service_worker(&assets_dir, &config)?);
+    report.files
+        .extend(pwa::write_service_worker(manifest_dir, &assets_dir, &config)?);
+    report.files.extend(pwa::write_workbox(&assets_dir, &config)?);
     report.files.extend(pwa::write_icons(&assets_dir, &config)?);
 
+    emit_rerun_hints(manifest_dir, &config);
+    Ok(report)
+}
+
+/// Tells Cargo which inputs change the generated output.
+///
+/// A `rerun-if-changed` entry for a directory only tracks that directory's own
+/// mtime, so every nested page directory and file is listed as well. Without
+/// that, adding `src/pages/folders/new.rs` would leave the route table stale
+/// until something else in the tree changed.
+fn emit_rerun_hints(manifest_dir: &Path, config: &Config) {
     println!("cargo:rerun-if-changed=Sayagi.toml");
-    println!("cargo:rerun-if-changed={}", config.routes.dir.display());
     println!("cargo:rerun-if-changed={}", config.app.assets_dir.display());
 
-    Ok(report)
+    fn walk(relative: &Path) {
+        println!("cargo:rerun-if-changed={}", relative.display());
+        let Ok(entries) = std::fs::read_dir(relative) else {
+            return;
+        };
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.is_dir() {
+                walk(&path);
+            } else {
+                println!("cargo:rerun-if-changed={}", path.display());
+            }
+        }
+    }
+
+    let routes_dir = config.routes_dir(manifest_dir);
+    if manifest_dir == Path::new(".") {
+        walk(&routes_dir);
+        return;
+    }
+    // Cargo resolves relative hints against the package root, so print paths
+    // relative to it whenever the routes directory lives inside the package.
+    match routes_dir.strip_prefix(manifest_dir) {
+        Ok(relative) => walk(relative),
+        Err(_) => walk(&routes_dir),
+    }
 }
 
 /// Regenerates only the PWA assets (manifest, service worker, icons).
@@ -153,7 +190,9 @@ pub fn generate_assets(manifest_dir: impl AsRef<Path>) -> Result<Report> {
 
     let mut report = Report::default();
     report.files.extend(pwa::write_manifest(&assets_dir, &config)?);
-    report.files.extend(pwa::write_service_worker(&assets_dir, &config)?);
+    report.files
+        .extend(pwa::write_service_worker(manifest_dir, &assets_dir, &config)?);
+    report.files.extend(pwa::write_workbox(&assets_dir, &config)?);
     report.files.extend(pwa::write_icons(&assets_dir, &config)?);
     Ok(report)
 }

@@ -4,15 +4,19 @@ use leptos::prelude::*;
 use leptos_meta::{provide_meta_context, HashedStylesheet, MetaTags, Title};
 use leptos_router::components::Router;
 
+use crate::components::SyncStrip;
 use crate::config;
 use crate::pages::FileRoutes;
+use crate::realtime;
+use crate::store::TodoStore;
 
 /// Kerangka HTML yang dikirim server sebelum Wasm mengambil alih.
 ///
 /// Semua tag PWA (manifest, theme color, apple-touch-icon) ikut di sini supaya
 /// aplikasi bisa dipasang ke home screen. Stylesheet memakai
-/// [`HashedStylesheet`] karena `cargo-leptos` meng-hash nama berkas di `/pkg`
-/// (lihat `hash-files = true` di `Cargo.toml`).
+/// [`HashedStylesheet`]: komponen itu memilih nama berkas yang benar baik saat
+/// `hash-files` aktif maupun tidak, jadi tidak akan jadi 404 kalau hashing
+/// dinyalakan nanti.
 pub fn shell(options: LeptosOptions) -> impl IntoView {
     view! {
         <!DOCTYPE html>
@@ -44,18 +48,38 @@ pub fn shell(options: LeptosOptions) -> impl IntoView {
     }
 }
 
-/// Komponen akar: metadata dan pohon rute hasil generate.
+/// Komponen akar: metadata, navigasi bawah, penyimpanan klien, dan pohon rute.
+///
+/// Dua hal didaftarkan sekali di sini dan dipakai semua halaman:
+///
+/// * [`NavItems`](sayagi::NavItems) — entri navigasi bawah.
+/// * [`TodoStore`] — daftar todo sisi klien (snapshot lokal + antrean offline),
+///   yang juga disambungkan ke kanal realtime oleh [`crate::realtime`].
+/// Arah animasi transisi halaman dihitung `MobileLayout` dari kedalaman rute
+/// (naik/turun/selevel) — lihat `sayagi::note_route_depth`.
 ///
 /// Stylesheet-nya sudah ditulis `shell`, sehingga navigasi sisi klien tidak
 /// perlu memuatnya lagi.
 #[component]
 pub fn App() -> impl IntoView {
     provide_meta_context();
+    provide_context(sayagi::NavItems::new([
+        sayagi::NavItem::new("Beranda", "/", "home"),
+        sayagi::NavItem::new("Todo", "/todos", "check"),
+        sayagi::NavItem::new("Status", "/dashboard", "chart"),
+    ]));
+
+    let store = TodoStore::new();
+    provide_context(store);
+    if let Some(client) = realtime::start(store) {
+        provide_context(client);
+    }
 
     view! {
         <Title text=config::APP_NAME/>
         <Router>
             <FileRoutes/>
         </Router>
+        <SyncStrip/>
     }
 }

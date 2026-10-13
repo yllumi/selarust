@@ -15,9 +15,7 @@ pub fn Page() -> impl IntoView {
                     "Backend Axum, frontend Leptos yang di-hydrate dari WebAssembly, dan SQLite \
                      tertanam — semuanya dari satu bahasa, satu toolchain."
                 </p>
-                <LinkButton href="/containers">
-                    "Buka daftar container"
-                </LinkButton>
+                <LinkButton href="/todos">"Buka todo list"</LinkButton>
             </section>
 
             <section class="sy-section">
@@ -25,15 +23,15 @@ pub fn Page() -> impl IntoView {
                 <ul class="sy-list">
                     <li class="sy-list__item">
                         <span class="sy-dot"></span>
+                        "CRUD todo yang tersimpan di SQLite, lewat server functions"
+                    </li>
+                    <li class="sy-list__item">
+                        <span class="sy-dot"></span>
                         "File-based routing dari " <code class="sy-code">"src/pages"</code>
                     </li>
                     <li class="sy-list__item">
                         <span class="sy-dot"></span>
-                        "Server functions tanpa menulis endpoint REST manual"
-                    </li>
-                    <li class="sy-list__item">
-                        <span class="sy-dot"></span>
-                        "Manifest, service worker, dan ikon digenerate saat build"
+                        "Manifest, service worker Workbox, dan ikon digenerate saat build"
                     </li>
                     <li class="sy-list__item">
                         <span class="sy-dot"></span>
@@ -45,7 +43,7 @@ pub fn Page() -> impl IntoView {
             <section class="sy-section">
                 <h3 class="sy-section__title">"Coba juga"</h3>
                 <LinkButton href="/dashboard" variant="ghost">
-                    "Lihat tabel rute hasil generate"
+                    "Lihat statistik dan tabel rute"
                 </LinkButton>
             </section>
         </MobileLayout>

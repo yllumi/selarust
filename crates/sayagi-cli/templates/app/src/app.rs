@@ -9,9 +9,8 @@ use crate::pages::FileRoutes;
 
 /// Kerangka HTML yang dikirim server sebelum Wasm mengambil alih.
 ///
-/// [`HashedStylesheet`] dipakai karena `cargo-leptos` meng-hash nama berkas di
-/// `/pkg` (`hash-files = true` di `Cargo.toml`); `Stylesheet` biasa tidak ikut
-/// ter-hash dan akan berakhir sebagai 404 di produksi.
+/// [`HashedStylesheet`] dipakai karena komponen itu memilih nama berkas CSS yang
+/// benar baik saat `hash-files` aktif maupun tidak.
 pub fn shell(options: LeptosOptions) -> impl IntoView {
     view! {
         <!DOCTYPE html>
@@ -42,10 +41,17 @@ pub fn shell(options: LeptosOptions) -> impl IntoView {
     }
 }
 
-/// Komponen akar: metadata dan pohon rute hasil generate.
+/// Komponen akar: metadata, navigasi bawah, dan pohon rute hasil generate.
+///
+/// Entri navigasi dideklarasikan sekali di sini lewat context
+/// [`NavItems`](sayagi::NavItems); halaman cukup memakai `<MobileLayout>`.
 #[component]
 pub fn App() -> impl IntoView {
     provide_meta_context();
+    provide_context(sayagi::NavItems::new([
+        sayagi::NavItem::new("Beranda", "/", "home"),
+        sayagi::NavItem::new("Contoh", "/hello", "check"),
+    ]));
 
     view! {
         <Title text=config::APP_NAME/>

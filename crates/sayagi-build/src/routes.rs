@@ -198,7 +198,9 @@ pub(crate) fn codegen(routes: &[Route]) -> String {
 
     out.push_str("/// The Leptos router tree generated from the file system.\n");
     out.push_str("#[component]\npub fn FileRoutes() -> impl IntoView {\n    view! {\n");
-    out.push_str("        <Routes fallback=NotFound>\n");
+    out.push_str(
+        "        <Routes fallback=NotFound transition=crate::config::PAGE_TRANSITIONS>\n",
+    );
     for route in routes {
         // `path!("/")` menghasilkan tuple kosong, sedangkan router Leptos memakai
         // satu segmen statis kosong untuk root — jadi root ditulis eksplisit.

@@ -16,6 +16,35 @@ pub fn register_service_worker(path: &str) {
     }
 }
 
+/// Unregisters every service worker of this origin and drops all `sayagi-*` caches.
+///
+/// Dev builds call this so a worker left behind by an earlier release build cannot
+/// serve cached HTML to `cargo leptos watch`. It is a no-op on the server.
+pub fn reset_service_worker() {
+    #[cfg(feature = "hydrate")]
+    {
+        reset_service_worker_js();
+    }
+}
+
+/// Whether the browser reports a connection right now.
+///
+/// `navigator.onLine` only says "there is a network interface", not "the server
+/// answers", so callers treat `true` as "try it" rather than a guarantee.
+pub fn is_online() -> bool {
+    #[cfg(feature = "hydrate")]
+    {
+        leptos::web_sys::window()
+            .and_then(|window| window.navigator().on_line().into())
+            .unwrap_or(true)
+    }
+
+    #[cfg(not(feature = "hydrate"))]
+    {
+        true
+    }
+}
+
 /// Mirrors `navigator.onLine` onto `<html data-sayagi-online="…">` and keeps it updated.
 ///
 /// CSS can react to it directly, so an offline banner needs no Rust state:
@@ -36,15 +65,50 @@ export function __sayagi_register_service_worker(path) {
   if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) {
     return;
   }
+  // Navigasi antar rute dilakukan router di sisi klien, jadi dokumen rute itu
+  // tidak pernah diminta lewat jaringan dan tidak akan masuk cache runtime
+  // dengan sendirinya. Tanpa langkah ini, reload offline pada rute yang sudah
+  // pernah dibuka akan jatuh ke halaman offline.
+  const warm = (registration) => {
+    const worker = navigator.serviceWorker.controller || registration.active;
+    if (!worker) {
+      return;
+    }
+    worker.postMessage({ type: "sayagi:warm-document", url: location.pathname + location.search });
+  };
+
   const register = () => {
-    navigator.serviceWorker.register(path, { scope: "/" }).catch((error) => {
-      console.warn("[sayagi] registrasi service worker gagal:", error);
-    });
+    navigator.serviceWorker
+      .register(path, { scope: "/" })
+      .then((registration) => {
+        warm(registration);
+        navigator.serviceWorker.addEventListener("controllerchange", () => warm(registration));
+      })
+      .catch((error) => {
+        console.warn("[sayagi] registrasi service worker gagal:", error);
+      });
   };
   if (document.readyState === "complete") {
     register();
   } else {
     window.addEventListener("load", register, { once: true });
+  }
+}
+
+export async function __sayagi_reset_service_worker() {
+  if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) {
+    return;
+  }
+  const registrations = await navigator.serviceWorker.getRegistrations();
+  await Promise.all(registrations.map((registration) => registration.unregister()));
+  if (typeof caches !== "undefined") {
+    // "sayagi-" covers our own caches, "workbox-" the ones Workbox manages.
+    const owned = (key) => key.startsWith("sayagi-") || key.startsWith("workbox-");
+    const keys = await caches.keys();
+    await Promise.all(keys.filter(owned).map((key) => caches.delete(key)));
+  }
+  if (registrations.length > 0) {
+    console.info("[sayagi] service worker dibersihkan untuk mode dev");
   }
 }
 
@@ -67,6 +131,9 @@ export function __sayagi_watch_connectivity() {
 extern "C" {
     #[wasm_bindgen::prelude::wasm_bindgen(js_name = __sayagi_register_service_worker)]
     fn register_service_worker_js(path: &str);
+
+    #[wasm_bindgen::prelude::wasm_bindgen(js_name = __sayagi_reset_service_worker)]
+    fn reset_service_worker_js();
 
     #[wasm_bindgen::prelude::wasm_bindgen(js_name = __sayagi_watch_connectivity)]
     fn watch_connectivity_js();

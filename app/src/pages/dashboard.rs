@@ -1,21 +1,21 @@
-//! `/dashboard` — statistik database dan tabel rute hasil generate.
+//! `/dashboard` — statistik todo dan tabel rute hasil generate.
 
 use leptos::prelude::*;
 use sayagi::MobileLayout;
 
-use crate::api::{get_stats, Stats};
+use crate::api::{get_todo_stats, TodoStats};
 use crate::components::StatTile;
 use crate::pages::ROUTES;
 
 /// Komponen halaman status.
 #[component]
 pub fn Page() -> impl IntoView {
-    let stats = Resource::new(|| (), |_| async { get_stats().await });
+    let stats = Resource::new(|| (), |_| async { get_todo_stats().await });
 
     view! {
         <MobileLayout title="Status">
             <section class="sy-section">
-                <h3 class="sy-section__title">"Container"</h3>
+                <h3 class="sy-section__title">"Todo"</h3>
                 <Suspense fallback=|| view! { <p class="sy-muted">"Memuat statistik…"</p> }>
                     {move || {
                         stats
@@ -58,12 +58,12 @@ pub fn Page() -> impl IntoView {
 }
 
 #[component]
-fn StatRow(stats: Stats) -> impl IntoView {
+fn StatRow(stats: TodoStats) -> impl IntoView {
     view! {
         <div class="sy-stats">
             <StatTile label="Total" value=stats.total.to_string()/>
-            <StatTile label="Running" value=stats.running.to_string() tone="ok"/>
-            <StatTile label="Berhenti" value=stats.stopped.to_string() tone="off"/>
+            <StatTile label="Terbuka" value=stats.open.to_string()/>
+            <StatTile label="Selesai" value=stats.done.to_string() tone="ok"/>
         </div>
     }
 }

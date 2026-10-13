@@ -9,3 +9,5 @@
 /app/public/manifest.webmanifest
 /app/public/sw.js
 /app/public/icons/
+# Runtime Workbox disalin dari crates/sayagi-build/vendor/workbox saat build.
+/app/public/workbox/

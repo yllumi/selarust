@@ -80,6 +80,10 @@ pub struct AppConfig {
     /// Address the Axum server binds to (`cargo leptos serve`).
     #[serde(default = "default_site_addr")]
     pub site_addr: String,
+    /// Animate route changes with the View Transition API; browsers without the
+    /// API simply render the new view without animation.
+    #[serde(default = "default_true")]
+    pub page_transitions: bool,
     /// Directory whose contents are copied to the site root.
     #[serde(default = "default_assets_dir")]
     pub assets_dir: PathBuf,
@@ -122,6 +126,12 @@ pub struct PwaConfig {
     /// URL prefixes served stale-while-revalidate (Wasm bundle, icons, assets).
     #[serde(default = "default_stale_while_revalidate")]
     pub stale_while_revalidate: Vec<String>,
+    /// Upper bound of entries kept in the Workbox runtime cache.
+    #[serde(default = "default_runtime_max_entries")]
+    pub runtime_max_entries: u32,
+    /// Age (in seconds) after which a runtime cache entry is evicted.
+    #[serde(default = "default_runtime_max_age_seconds")]
+    pub runtime_max_age_seconds: u64,
 }
 
 impl Default for PwaConfig {
@@ -133,6 +143,8 @@ impl Default for PwaConfig {
             precache: default_precache(),
             network_first: default_network_first(),
             stale_while_revalidate: default_stale_while_revalidate(),
+            runtime_max_entries: default_runtime_max_entries(),
+            runtime_max_age_seconds: default_runtime_max_age_seconds(),
         }
     }
 }
@@ -196,6 +208,9 @@ pub(crate) fn codegen(config: &Config) -> String {
     ));
     out.push_str("pub const MANIFEST_PATH: &str = \"/manifest.webmanifest\";\n");
     out.push_str("pub const SERVICE_WORKER_PATH: &str = \"/sw.js\";\n");
+    out.push_str("pub const PAGE_TRANSITIONS: bool = ");
+    out.push_str(if app.page_transitions { "true" } else { "false" });
+    out.push_str(";\n");
     out.push_str("pub const SERVICE_WORKER_ENABLED: bool = ");
     out.push_str(if pwa.service_worker { "true" } else { "false" });
     out.push_str(";\n");
@@ -280,6 +295,14 @@ fn default_precache() -> Vec<String> {
         "/offline".to_string(),
         "/manifest.webmanifest".to_string(),
     ]
+}
+
+fn default_runtime_max_entries() -> u32 {
+    128
+}
+
+fn default_runtime_max_age_seconds() -> u64 {
+    60 * 60 * 24 * 30
 }
 
 fn default_network_first() -> Vec<String> {

@@ -56,8 +56,7 @@ assets-dir = "public"
 site-addr = "{{site_addr}}"
 reload-port = 3001
 browserquery = "defaults"
-# Hash konten berkas di /pkg/ agar aman di-cache selamanya di produksi.
-hash-files = true
+# Catatan: `hash-files` dibiarkan mati karena merusak hot-reload CSS di watch mode.
 bin-features = ["ssr"]
 bin-default-features = false
 lib-features = ["hydrate"]

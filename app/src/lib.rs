@@ -9,10 +9,18 @@
 pub mod api;
 pub mod app;
 pub mod components;
+/// Klien realtime (WebSocket) yang menerapkan event ke [`store::TodoStore`].
+pub mod realtime;
 pub mod service_worker;
+/// State todo sisi klien: snapshot lokal, antrean offline, overlay optimistis.
+pub mod store;
 
 #[cfg(feature = "ssr")]
 pub mod db;
+
+/// Hub + endpoint WebSocket untuk sinkronisasi realtime (khusus server).
+#[cfg(feature = "ssr")]
+pub mod sync;
 
 /// Rute yang digenerate dari `src/pages` oleh `sayagi-build`.
 ///

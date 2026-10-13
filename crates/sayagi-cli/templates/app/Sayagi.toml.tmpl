@@ -24,9 +24,13 @@ dir = "src/pages"
 service_worker = true
 offline_fallback = "/offline"
 icons = [192, 512]
+# Entri precache diberi revisi versi build oleh sayagi-build (berbasis isi
+# sumber aplikasi), jadi berkas yang berubah diunduh ulang saat worker baru dipasang.
 precache = ["/", "/offline", "/manifest.webmanifest"]
-network_first = ["/api/"]
-stale_while_revalidate = ["/pkg/", "/icons/", "/assets/"]
+# `/pkg/` network-first supaya wasm hasil build baru tidak pernah bercampur
+# dengan HTML lama; fallback cache-nya tetap melayani mode offline.
+network_first = ["/api/", "/pkg/"]
+stale_while_revalidate = ["/icons/", "/assets/"]
 
 [database]
 # Nilai di bawah dipanggang menjadi konstanta saat build (`config::DATABASE_URL`).

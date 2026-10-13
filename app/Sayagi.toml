@@ -3,9 +3,9 @@
 # service worker, ikon, dan konstanta yang dipakai server.
 
 [app]
-name = "Sayagi Containers"
+name = "Sayagi Todo"
 short_name = "Sayagi"
-description = "Contoh aplikasi mobile-first PWA yang dibangun dengan metaframework Sayagi Rust."
+description = "Contoh CRUD todo mobile-first PWA yang dibangun dengan metaframework Sayagi Rust."
 lang = "id"
 theme_color = "#0f172a"
 background_color = "#0f172a"
@@ -14,21 +14,38 @@ scope = "/"
 display = "standalone"
 orientation = "portrait"
 site_addr = "127.0.0.1:3000"
+# Animasi perpindahan halaman lewat View Transition API; di browser yang belum
+# mendukung, halaman baru tetap muncul (tanpa animasi).
+page_transitions = true
 assets_dir = "public"
 
 [routes]
 # Setiap file .rs di sini menjadi satu rute:
-#   index.rs -> "/"            containers/index.rs -> "/containers"
-#   dashboard.rs -> "/dashboard"   containers/[id].rs -> "/containers/:id"
+#   index.rs -> "/"                todos/index.rs -> "/todos"
+#   dashboard.rs -> "/dashboard"   todos/[id].rs -> "/todos/:id"
 dir = "src/pages"
 
 [pwa]
 service_worker = true
 offline_fallback = "/offline"
 icons = [192, 512]
+# Entri precache selalu diberi revisi versi build oleh sayagi-build, jadi
+# berkas yang berubah otomatis diunduh ulang saat service worker baru dipasang.
+# Bundle shell (/pkg/*.js|wasm|css) dan dokumen rute yang dikunjungi tidak perlu
+# didaftarkan di sini: service worker memanaskannya sendiri saat install dan saat
+# rute dibuka (lihat catatan perilaku di README).
 precache = ["/", "/offline", "/manifest.webmanifest"]
-network_first = ["/api/"]
-stale_while_revalidate = ["/pkg/", "/icons/", "/assets/"]
+# `/pkg/` masuk network-first, bukan stale-while-revalidate: nama berkas bundle
+# tidak di-hash, jadi SWR berisiko menyajikan wasm lama berdampingan dengan HTML
+# baru setelah deploy. Network-first tetap punya fallback cache untuk offline,
+# dan berkat ETag (lihat AssetCacheControl di src/main.rs) revalidasinya hanya
+# `304 Not Modified` sehingga bundle 600 KB tidak diunduh ulang.
+network_first = ["/api/", "/pkg/"]
+stale_while_revalidate = ["/icons/", "/assets/"]
+# Batas cache runtime yang dikelola Workbox (ExpirationPlugin): jumlah entri dan
+# umurnya. Halaman offline disimpan di cache terpisah, jadi tidak ikut terhapus.
+runtime_max_entries = 128
+runtime_max_age_seconds = 2592000
 
 [database]
 # SQLite tertanam (WAL). Path relatif diresolusi terhadap direktori biner agar

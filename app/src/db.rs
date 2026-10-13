@@ -1,4 +1,4 @@
-//! SQLite tertanam: pool koneksi, WAL mode, dan tabel contoh.
+//! SQLite tertanam: pool koneksi, WAL mode, dan tabel `todos`.
 //!
 //! Hanya dikompilasi di sisi server (`ssr`) — klien Wasm tidak pernah menyentuh
 //! database secara langsung, semua akses lewat server functions di `api.rs`.
@@ -9,7 +9,7 @@ use std::time::Duration;
 use sqlx::sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions, SqliteSynchronous};
 use sqlx::{Row, SqlitePool};
 
-use crate::api::{Container, Stats};
+use crate::api::{Todo, TodoStats};
 
 /// Tipe pool yang dibagikan lewat context Leptos ke server functions.
 pub type Pool = SqlitePool;
@@ -60,7 +60,7 @@ pub async fn connect(url: &str, max_connections: u32, seed: bool) -> Result<Pool
 
     migrate(&pool).await?;
     if seed {
-        seed_containers(&pool).await?;
+        seed_todos(&pool).await?;
     }
     Ok(pool)
 }
@@ -69,10 +69,11 @@ pub async fn connect(url: &str, max_connections: u32, seed: bool) -> Result<Pool
 pub async fn migrate(pool: &Pool) -> Result<(), sqlx::Error> {
     sqlx::query(
         r#"
-        CREATE TABLE IF NOT EXISTS containers (
+        CREATE TABLE IF NOT EXISTS todos (
             id         INTEGER PRIMARY KEY AUTOINCREMENT,
-            name       TEXT NOT NULL,
-            status     TEXT NOT NULL,
+            title      TEXT NOT NULL,
+            notes      TEXT NOT NULL DEFAULT '',
+            completed  INTEGER NOT NULL DEFAULT 0,
             created_at TEXT NOT NULL DEFAULT (datetime('now'))
         )
         "#,
@@ -80,15 +81,15 @@ pub async fn migrate(pool: &Pool) -> Result<(), sqlx::Error> {
     .execute(pool)
     .await?;
 
-    sqlx::query("CREATE INDEX IF NOT EXISTS containers_status_idx ON containers (status)")
+    sqlx::query("CREATE INDEX IF NOT EXISTS todos_completed_idx ON todos (completed)")
         .execute(pool)
         .await?;
     Ok(())
 }
 
 /// Mengisi data contoh pada boot pertama saja.
-pub async fn seed_containers(pool: &Pool) -> Result<(), sqlx::Error> {
-    let existing: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM containers")
+pub async fn seed_todos(pool: &Pool) -> Result<(), sqlx::Error> {
+    let existing: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM todos")
         .fetch_one(pool)
         .await?;
     if existing > 0 {
@@ -96,70 +97,126 @@ pub async fn seed_containers(pool: &Pool) -> Result<(), sqlx::Error> {
     }
 
     let rows = [
-        ("api-gateway", "running"),
-        ("worker-queue", "idle"),
-        ("postgres-primary", "running"),
-        ("redis-cache", "stopped"),
+        ("Coba form tambah todo", "Todo baru muncul di paling atas.", false),
+        ("Ketuk judul untuk membuka detail", "Di sana judul dan catatan bisa diubah.", false),
+        ("Tandai selesai lewat tombol centang", "Perubahannya langsung tersimpan ke SQLite.", true),
     ];
-    for (name, status) in rows {
-        sqlx::query("INSERT INTO containers (name, status) VALUES (?1, ?2)")
-            .bind(name)
-            .bind(status)
+    for (title, notes, completed) in rows {
+        sqlx::query("INSERT INTO todos (title, notes, completed) VALUES (?1, ?2, ?3)")
+            .bind(title)
+            .bind(notes)
+            .bind(if completed { 1_i64 } else { 0_i64 })
             .execute(pool)
             .await?;
     }
     Ok(())
 }
 
-/// Semua container, terbaru lebih dulu.
-pub async fn list_containers(pool: &Pool) -> Result<Vec<Container>, sqlx::Error> {
-    let rows = sqlx::query("SELECT id, name, status FROM containers ORDER BY id DESC")
-        .fetch_all(pool)
-        .await?;
-    Ok(rows.iter().map(map_container).collect())
+const COLUMNS: &str = "id, title, notes, completed, created_at";
+
+/// Semua todo, terbaru lebih dulu.
+pub async fn list_todos(pool: &Pool) -> Result<Vec<Todo>, sqlx::Error> {
+    let sql = format!("SELECT {COLUMNS} FROM todos ORDER BY id DESC");
+    let rows = sqlx::query(&sql).fetch_all(pool).await?;
+    Ok(rows.iter().map(map_todo).collect())
 }
 
-/// Satu container, bila ada.
-pub async fn find_container(pool: &Pool, id: i64) -> Result<Option<Container>, sqlx::Error> {
-    let row = sqlx::query("SELECT id, name, status FROM containers WHERE id = ?1")
+/// Satu todo, bila ada.
+pub async fn find_todo(pool: &Pool, id: i64) -> Result<Option<Todo>, sqlx::Error> {
+    let sql = format!("SELECT {COLUMNS} FROM todos WHERE id = ?1");
+    let row = sqlx::query(&sql).bind(id).fetch_optional(pool).await?;
+    Ok(row.as_ref().map(map_todo))
+}
+
+/// Menambah todo baru dan mengembalikan barisnya.
+pub async fn create_todo(pool: &Pool, title: &str, notes: &str) -> Result<Todo, sqlx::Error> {
+    let result = sqlx::query("INSERT INTO todos (title, notes) VALUES (?1, ?2)")
+        .bind(title)
+        .bind(notes)
+        .execute(pool)
+        .await?;
+
+    let id = result.last_insert_rowid();
+    find_todo(pool, id)
+        .await?
+        .ok_or_else(|| sqlx::Error::RowNotFound)
+}
+
+/// Mengubah judul dan catatan. Mengembalikan `None` bila id tidak ada.
+pub async fn update_todo(
+    pool: &Pool,
+    id: i64,
+    title: &str,
+    notes: &str,
+) -> Result<Option<Todo>, sqlx::Error> {
+    let result = sqlx::query("UPDATE todos SET title = ?1, notes = ?2 WHERE id = ?3")
+        .bind(title)
+        .bind(notes)
         .bind(id)
-        .fetch_optional(pool)
+        .execute(pool)
         .await?;
-    Ok(row.as_ref().map(map_container))
+
+    if result.rows_affected() == 0 {
+        return Ok(None);
+    }
+    find_todo(pool, id).await
 }
 
-/// Agregat status untuk halaman dashboard.
-pub async fn stats(pool: &Pool) -> Result<Stats, sqlx::Error> {
+/// Menandai selesai/belum selesai. `false` bila id tidak ada.
+pub async fn set_completed(pool: &Pool, id: i64, completed: bool) -> Result<bool, sqlx::Error> {
+    let result = sqlx::query("UPDATE todos SET completed = ?1 WHERE id = ?2")
+        .bind(if completed { 1_i64 } else { 0_i64 })
+        .bind(id)
+        .execute(pool)
+        .await?;
+
+    Ok(result.rows_affected() > 0)
+}
+
+/// Menghapus satu todo. `false` bila id tidak ada.
+pub async fn delete_todo(pool: &Pool, id: i64) -> Result<bool, sqlx::Error> {
+    let result = sqlx::query("DELETE FROM todos WHERE id = ?1")
+        .bind(id)
+        .execute(pool)
+        .await?;
+
+    Ok(result.rows_affected() > 0)
+}
+
+/// Agregat untuk halaman status.
+pub async fn todo_stats(pool: &Pool) -> Result<TodoStats, sqlx::Error> {
     let row = sqlx::query(
         r#"
         SELECT
-            COUNT(*)                                          AS total,
-            COALESCE(SUM(status = 'running'), 0)              AS running,
-            COALESCE(SUM(status <> 'running'), 0)              AS stopped
-        FROM containers
+            COUNT(*)                        AS total,
+            COALESCE(SUM(completed = 0), 0) AS open,
+            COALESCE(SUM(completed = 1), 0) AS done
+        FROM todos
         "#,
     )
     .fetch_one(pool)
     .await?;
 
-    Ok(Stats {
+    Ok(TodoStats {
         total: row.try_get("total")?,
-        running: row.try_get("running")?,
-        stopped: row.try_get("stopped")?,
+        open: row.try_get("open")?,
+        done: row.try_get("done")?,
     })
 }
 
-fn map_container(row: &sqlx::sqlite::SqliteRow) -> Container {
-    Container {
+fn map_todo(row: &sqlx::sqlite::SqliteRow) -> Todo {
+    Todo {
         id: row.get("id"),
-        name: row.get("name"),
-        status: row.get("status"),
+        title: row.get("title"),
+        notes: row.get("notes"),
+        completed: row.get::<i64, _>("completed") != 0,
+        created_at: row.get("created_at"),
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::resolve_url;
+    use super::{resolve_url, COLUMNS};
 
     #[test]
     fn relative_sqlite_urls_are_absolutised() {
@@ -178,5 +235,12 @@ mod tests {
         assert_eq!(resolve_url("sqlite::memory:"), "sqlite::memory:");
         assert_eq!(resolve_url("sqlite://:memory:"), "sqlite://:memory:");
         assert_eq!(resolve_url("postgres://localhost/app"), "postgres://localhost/app");
+    }
+
+    #[test]
+    fn selected_columns_match_the_row_mapper() {
+        for column in ["id", "title", "notes", "completed", "created_at"] {
+            assert!(COLUMNS.contains(column), "`{column}` tidak ada di COLUMNS");
+        }
     }
 }
